@@ -113,10 +113,36 @@ class PreferencesService {
         .toList();
   }
 
+  static const _weeklyPlanKey = 'weekly_plan_recipe_ids';
+  static const _checkedShoppingItemsKey = 'checked_shopping_items';
+
+  Future<void> saveWeeklyPlanRecipeIds(List<String> recipeIds) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_weeklyPlanKey, recipeIds);
+  }
+
+  Future<List<String>?> loadWeeklyPlanRecipeIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_weeklyPlanKey);
+  }
+
+  Future<void> saveCheckedShoppingItems(Set<String> itemNames) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_checkedShoppingItemsKey, itemNames.toList());
+  }
+
+  Future<Set<String>> loadCheckedShoppingItems() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rawList = prefs.getStringList(_checkedShoppingItemsKey) ?? [];
+    return rawList.toSet();
+  }
+
   // Mostly useful for testing / a future "reset app" button in Profile.
   Future<void> clearAll() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_onboardingKey);
     await prefs.remove(_cookedHistoryKey);
+    await prefs.remove(_weeklyPlanKey);
+    await prefs.remove(_checkedShoppingItemsKey);
   }
 }

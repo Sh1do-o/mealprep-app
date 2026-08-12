@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/onboarding_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_navigation_screen.dart';
 import 'services/preferences_service.dart';
 
 void main() {
@@ -42,7 +42,7 @@ class _StartupRouter extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        return snapshot.data! ? const HomeScreen() : const OnboardingScreen();
+        return snapshot.data! ? const MainNavigationScreen() : const OnboardingScreen();
       },
     );
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/preferences_service.dart';
-import 'home_screen.dart';
+import 'main_navigation_screen.dart';
 
 // key -> display label. Keys match what recipe_matcher.dart checks for.
 const List<MapEntry<String, String>> dietaryOptions = [
@@ -64,7 +64,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
     );
   }
 

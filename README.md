@@ -117,16 +117,10 @@ phase is validated before the next is built on top of it.
 - Only worth building once "mark as cooked" data shows the core loop
   is actually being used
 
-### Phase 4 — Weekly Plan + auto Shopping List (the prototype's
-most ambitious screens)
-- Weekly Plan: auto-generates a non-repeating week of meals within
-  budget, with a "Regenerate Plan" action — this is a planning
-  algorithm, meaningfully harder than Phase 1's ranked filtering
-- Shopping List: reconciles "already have" vs. what the week's plan
-  needs, with a running estimated cost total — depends on the Weekly
-  Plan existing first, effectively its own subsystem
-- Firebase backend likely becomes necessary around here, once data
-  needs to sync/scale beyond local dummy JSON
+### Phase 4 — Weekly Plan + auto Shopping List
+- ✅ **Weekly Plan Generator** — `lib/logic/weekly_planner_logic.dart` & `lib/screens/weekly_plan_screen.dart`. Auto-generates a non-repeating 7-day meal plan under budget, equipment, and dietary constraints, with per-day meal swapping, plan regeneration, and total macro tracking.
+- ✅ **Auto Shopping List** — `lib/logic/shopping_list_logic.dart` & `lib/screens/shopping_list_screen.dart`. Reconciles pantry ingredients against planned meals, categorizes grocery items by category, tracks progress, and persists check-offs.
+- ✅ **Main Navigation** — `lib/screens/main_navigation_screen.dart`. Seamless Material 3 NavigationBar connecting Cook Now, Weekly Plan, Shopping List, and Summary.
 
 ### Later / not yet scoped
 - Favorites / saved meals list (shown in prototype's Nutrition screen)
