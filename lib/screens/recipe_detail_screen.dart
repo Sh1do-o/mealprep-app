@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
+import '../data/substitutions_database.dart';
 import '../models/recipe.dart';
 import '../services/preferences_service.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final Recipe recipe;
-  // Ingredients the user already said they have (from the Home screen).
-  // Optional and defaults to empty, so this screen still works fine
-  // if it's ever opened without that context (e.g. from Favorites later).
   final List<String> ownedIngredients;
 
   const RecipeDetailScreen({
@@ -25,19 +23,44 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool isCooked = false;
   bool isSavingCookedEntry = false;
 
-  // Tracks which ingredients have been checked off while cooking.
-  // Keyed by ingredient text since we don't have per-ingredient IDs yet.
   late final Map<String, bool> checkedIngredients;
 
   @override
   void initState() {
     super.initState();
-    // Pre-check anything the user already said they have on the Home
-    // screen - saves them re-ticking ingredients they already confirmed.
+    _checkIsFavorite();
     checkedIngredients = {
       for (final ingredient in widget.recipe.ingredients)
         ingredient: widget.ownedIngredients.contains(ingredient),
     };
+  }
+
+  Future<void> _checkIsFavorite() async {
+    final favorites = await _preferencesService.loadFavoriteRecipeIds();
+    if (!mounted) return;
+    setState(() {
+      isSaved = favorites.contains(widget.recipe.id);
+    });
+  }
+
+  Future<void> _toggleFavorite() async {
+    final newIsSaved =
+        await _preferencesService.toggleFavoriteRecipe(widget.recipe.id);
+    if (!mounted) return;
+    setState(() {
+      isSaved = newIsSaved;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          newIsSaved
+              ? 'Saved "${widget.recipe.title}" to Favorites'
+              : 'Removed from Favorites',
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   String _difficultyLabel(Difficulty difficulty) {
@@ -63,10 +86,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   }
 
   Future<void> _handleMarkAsCooked() async {
-    // Only ever write an entry when going from not-cooked to cooked.
-    // Unmarking doesn't delete the history entry - the fact that they
-    // cooked it earlier today already happened and is worth keeping,
-    // this button is about the user's current view, not an undo.
     if (isCooked) {
       setState(() => isCooked = false);
       return;
@@ -92,14 +111,19 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final recipe = widget.recipe;
+    final ownedLower = widget.ownedIngredients.map((i) => i.toLowerCase()).toSet();
 
     return Scaffold(
       appBar: AppBar(
         title: Text(recipe.title),
         actions: [
           IconButton(
-            icon: Icon(isSaved ? Icons.favorite : Icons.favorite_border),
-            onPressed: () => setState(() => isSaved = !isSaved),
+            icon: Icon(
+              isSaved ? Icons.favorite : Icons.favorite_border,
+              color: isSaved ? Colors.red : null,
+            ),
+            tooltip: isSaved ? 'Remove from Favorites' : 'Save to Favorites',
+            onPressed: _toggleFavorite,
           ),
         ],
       ),
@@ -107,7 +131,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
-            // Prep time, cost, and difficulty badge together.
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -133,83 +156,172 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-            // Checkboxes so users can tick things off while gathering
-            // ingredients or cooking - purely local UI state for now,
-            // doesn't persist or affect matching logic.
-            ...recipe.ingredients.map((ingredient) {
-              final isOwned = widget.ownedIngredients.contains(ingredient);
+            ...recipe.detailedIngredients.map((spec) {
+              final isOwned = ownedLower.contains(spec.name.toLowerCase());
+
+              // Check if user owns any valid substitute for missing ingredient
+              String? matchingSub;
+              if (!isOwned) {
+                for (final sub in spec.substitutes) {
+                  if (ownedLower.contains(sub.toLowerCase())) {
+                    matchingSub = sub;
+                    break;
+                  }
+                }
+                if (matchingSub == null) {
+                  final globalSub = findGlobalSubstitution(spec.name);
+                  if (globalSub != null) {
+                    for (final sub in globalSub.substitutes) {
+                      if (ownedLower.contains(sub.toLowerCase())) {
+                        matchingSub = sub;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
               return CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
                 dense: true,
-                title: Text(ingredient),
+                title: Text(spec.name),
                 subtitle: isOwned
                     ? null
-                    : const Text(
-                        'Missing',
-                        style: TextStyle(color: Colors.orange, fontSize: 12),
-                      ),
-                value: checkedIngredients[ingredient],
+                    : matchingSub != null
+                        ? Text(
+                            'Substituted with $matchingSub in your pantry',
+                            style: const TextStyle(
+                                color: Colors.green,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold),
+                          )
+                        : const Text(
+                            'Missing',
+                            style:
+                                TextStyle(color: Colors.orange, fontSize: 12),
+                          ),
+                value: checkedIngredients[spec.name] ?? false,
                 onChanged: (val) {
-                  setState(() => checkedIngredients[ingredient] = val!);
+                  setState(() => checkedIngredients[spec.name] = val!);
                 },
               );
             }),
+
+            const SizedBox(height: 12),
+            _buildSubstitutionsSection(recipe, ownedLower),
+
             const SizedBox(height: 12),
             if (recipe.nutrition.calories > 0) ...[
               const Text(
-                'Macros per serving',
+                'Nutrition (per serving)',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    _MacroRow(label: 'Calories', value: '${recipe.nutrition.calories} kcal'),
-                    _MacroRow(label: 'Protein', value: '${recipe.nutrition.proteinGrams.toStringAsFixed(0)}g'),
-                    _MacroRow(label: 'Carbs', value: '${recipe.nutrition.carbsGrams.toStringAsFixed(0)}g'),
-                    _MacroRow(label: 'Fat', value: '${recipe.nutrition.fatGrams.toStringAsFixed(0)}g'),
-                  ],
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildMacroColumn(
+                        label: 'Calories',
+                        value: '${recipe.nutrition.calories}',
+                        unit: 'kcal',
+                      ),
+                      _buildMacroColumn(
+                        label: 'Protein',
+                        value: '${recipe.nutrition.proteinGrams.toStringAsFixed(0)}',
+                        unit: 'g',
+                      ),
+                      _buildMacroColumn(
+                        label: 'Carbs',
+                        value: '${recipe.nutrition.carbsGrams.toStringAsFixed(0)}',
+                        unit: 'g',
+                      ),
+                      _buildMacroColumn(
+                        label: 'Fat',
+                        value: '${recipe.nutrition.fatGrams.toStringAsFixed(0)}',
+                        unit: 'g',
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
             ],
+
             const Text(
-              'Cooking steps',
+              'Equipment needed',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            if (recipe.steps.isEmpty)
-              const Text(
-                'No detailed steps provided for this recipe.',
-                style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
-              )
-            else
-              ...recipe.steps.asMap().entries.map(
-                    (entry) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text('${entry.key + 1}. ${entry.value}'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: recipe.equipmentNeeded
+                  .map((e) => Chip(label: Text(e)))
+                  .toList(),
+            ),
+
+            const SizedBox(height: 16),
+            const Text(
+              'Steps',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ...recipe.steps.asMap().entries.map((entry) {
+              final stepIndex = entry.key + 1;
+              final stepText = entry.value;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 12,
+                      child: Text(
+                        '$stepIndex',
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        stepText,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isCooked ? Colors.green[700] : null,
+                  foregroundColor: isCooked ? Colors.white : null,
+                ),
                 onPressed: isSavingCookedEntry ? null : _handleMarkAsCooked,
-                child: Padding(
+                icon: isSavingCookedEntry
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        isCooked ? Icons.check_circle : Icons.soup_kitchen,
+                      ),
+                label: Padding(
                   padding: const EdgeInsets.all(12),
-                  child: isSavingCookedEntry
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(isCooked ? 'Marked as cooked ✓' : 'Mark as cooked'),
+                  child: Text(
+                    isCooked ? 'Cooked today!' : 'Mark as cooked',
+                    style: const TextStyle(fontSize: 16),
+                  ),
                 ),
               ),
             ),
@@ -218,26 +330,89 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       ),
     );
   }
-}
 
-// Small helper row for the macros box, keeps the build method readable.
-class _MacroRow extends StatelessWidget {
-  final String label;
-  final String value;
+  Widget _buildSubstitutionsSection(Recipe recipe, Set<String> ownedLower) {
+    final subTips = <Map<String, String>>[];
 
-  const _MacroRow({required this.label, required this.value});
+    for (final spec in recipe.detailedIngredients) {
+      final isOwned = ownedLower.contains(spec.name.toLowerCase());
+      if (!isOwned) {
+        final global = findGlobalSubstitution(spec.name);
+        final subs = spec.substitutes.isNotEmpty
+            ? spec.substitutes
+            : (global?.substitutes ?? []);
+        final note = spec.substitutionNote ?? (global?.tip ?? '');
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-        ],
+        if (subs.isNotEmpty) {
+          subTips.add({
+            'ingredient': spec.name,
+            'substitutes': subs.join(', '),
+            'note': note,
+          });
+        }
+      }
+    }
+
+    if (subTips.isEmpty) return const SizedBox();
+
+    return Card(
+      color: Colors.amber[50],
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.amber.shade200),
       ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.lightbulb_outline, color: Colors.amber[900]),
+                const SizedBox(width: 8),
+                Text(
+                  'Smart Ingredient Substitutions',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.amber[900],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...subTips.map((tip) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  '• Missing ${tip['ingredient']}? Try: ${tip['substitutes']}.${tip['note']!.isNotEmpty ? ' (${tip['note']})' : ''}',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMacroColumn({
+    required String label,
+    required String value,
+    required String unit,
+  }) {
+    return Column(
+      children: [
+        Text(
+          '$value $unit',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.grey, fontSize: 12),
+        ),
+      ],
     );
   }
 }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'favorites_screen.dart';
 import 'home_screen.dart';
+import 'roommate_deals_screen.dart';
 import 'shopping_list_screen.dart';
 import 'weekly_plan_screen.dart';
-import 'weekly_summary_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final int initialIndex;
@@ -19,7 +20,6 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   late int _currentIndex;
 
-  // Track selected ingredients across tabs so home selection flows into shopping list & plan
   final Set<String> _selectedIngredients = {};
 
   @override
@@ -34,7 +34,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const HomeScreen(),
       WeeklyPlanScreen(selectedIngredients: _selectedIngredients),
       ShoppingListScreen(selectedIngredients: _selectedIngredients),
-      const WeeklySummaryScreen(),
+      const FavoritesScreen(),
+      const RoommateDealsScreen(),
     ];
 
     return Scaffold(
@@ -66,9 +67,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             label: 'Shopping List',
           ),
           NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            selectedIcon: Icon(Icons.bar_chart),
-            label: 'Summary',
+            icon: Icon(Icons.favorite_outline),
+            selectedIcon: Icon(Icons.favorite),
+            label: 'Favorites',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.people_outline),
+            selectedIcon: Icon(Icons.people),
+            label: 'Roommates',
           ),
         ],
       ),

@@ -43,12 +43,10 @@ class ResultsScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final match = matches[index];
                 final recipe = match.recipe;
+                final hasSubs = match.substitutionsAvailable.isNotEmpty;
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
-                  // Recipes you can't actually cook right now (missing
-                  // equipment or over budget) are visually dimmed rather
-                  // than hidden - still useful to know they exist.
                   color: match.isCookable
                       ? null
                       : Theme.of(context)
@@ -57,14 +55,64 @@ class ResultsScreen extends StatelessWidget {
                           .withValues(alpha: 0.5),
                   child: ListTile(
                     contentPadding: const EdgeInsets.all(12),
-                    title: Text(
-                      recipe.title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: match.isCookable ? null : Colors.grey[700],
-                      ),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            recipe.title,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: match.isCookable ? null : Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                        if (hasSubs && match.isCookable) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.amber[100],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.lightbulb,
+                                    size: 12, color: Colors.amber[900]),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${match.substitutionsAvailable.length} Swap${match.substitutionsAvailable.length > 1 ? 's' : ''}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.amber[900],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                    subtitle: Text(_subtitleFor(match)),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 4),
+                        Text(_subtitleFor(match)),
+                        if (hasSubs && match.isCookable) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            _substituteHintFor(match),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.green[800],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
                       Navigator.push(
@@ -119,11 +167,29 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
+  String _substituteHintFor(RecipeMatch match) {
+    final entries = match.substitutionsAvailable.entries.map((e) {
+      return 'Use ${e.value} instead of ${e.key}';
+    }).join('; ');
+    return '💡 Swap Tip: $entries';
+  }
+
   String _subtitleFor(RecipeMatch match) {
     final recipe = match.recipe;
+    final missingCount = match.missingIngredients.length;
+    final unreplaceable = match.unreplaceableMissingCount;
+
+    String ingredientStatus;
+    if (missingCount == 0) {
+      ingredientStatus = 'All ingredients ready!';
+    } else if (unreplaceable == 0) {
+      ingredientStatus = 'Cookable with pantry swaps!';
+    } else {
+      ingredientStatus = '$unreplaceable missing ingredient(s)';
+    }
+
     final base =
-        '${recipe.prepTime} • ₱${recipe.estimatedCost.toStringAsFixed(0)} • '
-        '${match.missingIngredients.isEmpty ? "All ingredients ready!" : "${match.missingIngredients.length} ingredient(s) missing"}';
+        '${recipe.prepTime} • ₱${recipe.estimatedCost.toStringAsFixed(0)} • $ingredientStatus';
 
     if (!match.hasRequiredEquipment) {
       return '$base • Needs: ${recipe.equipmentNeeded.join(", ")}';
