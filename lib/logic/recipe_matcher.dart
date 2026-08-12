@@ -39,6 +39,7 @@ Set<String> ownedEquipmentFrom(OnboardingData data) {
     if (data.hasStove) 'Stove',
     if (data.hasMicrowave) 'Microwave',
     if (data.hasFridge) 'Fridge',
+    if (data.hasElectricKettle) 'Electric Kettle',
   };
 }
 
@@ -68,61 +69,72 @@ List<RecipeMatch> getRecommendations({
 }) {
   final recipes = recipePool ?? dummyRecipes;
   final ownedSetLower = ownedIngredients.map((i) => i.toLowerCase()).toSet();
+  final ownedEquipLower = ownedEquipment.map((e) => e.toLowerCase()).toSet();
 
-  final matches = recipes.map((recipe) {
-    final missing = <String>[];
-    final substitutions = <String, String>{};
+  final matches = recipes
+      .where((recipe) {
+        // Strict appliance filter: if user doesn't own equipment, don't suggest the recipe
+        if (recipe.equipmentNeeded.isEmpty) return true;
+        return recipe.equipmentNeeded.every(
+          (e) => ownedEquipLower.contains(e.toLowerCase()),
+        );
+      })
+      .map((recipe) {
+        final missing = <String>[];
+        final substitutions = <String, String>{};
 
-    for (final spec in recipe.detailedIngredients) {
-      final nameLower = spec.name.toLowerCase();
-      final hasIngredient = ownedSetLower.contains(nameLower);
+        for (final spec in recipe.detailedIngredients) {
+          final nameLower = spec.name.toLowerCase();
+          final hasIngredient = ownedSetLower.contains(nameLower);
 
-      if (!hasIngredient) {
-        missing.add(spec.name);
+          if (!hasIngredient) {
+            missing.add(spec.name);
 
-        // 1. Check recipe-specific substitutes
-        String? foundSub;
-        for (final sub in spec.substitutes) {
-          if (ownedSetLower.contains(sub.toLowerCase())) {
-            foundSub = sub;
-            break;
-          }
-        }
-
-        // 2. Check global fallback database if not found in recipe spec
-        if (foundSub == null) {
-          final globalSub = findGlobalSubstitution(spec.name);
-          if (globalSub != null) {
-            for (final sub in globalSub.substitutes) {
+            // 1. Check recipe-specific substitutes
+            String? foundSub;
+            for (final sub in spec.substitutes) {
               if (ownedSetLower.contains(sub.toLowerCase())) {
                 foundSub = sub;
                 break;
               }
             }
+
+            // 2. Check global fallback database if not found in recipe spec
+            if (foundSub == null) {
+              final globalSub = findGlobalSubstitution(spec.name);
+              if (globalSub != null) {
+                for (final sub in globalSub.substitutes) {
+                  if (ownedSetLower.contains(sub.toLowerCase())) {
+                    foundSub = sub;
+                    break;
+                  }
+                }
+              }
+            }
+
+            if (foundSub != null) {
+              substitutions[spec.name] = foundSub;
+            }
           }
         }
 
-        if (foundSub != null) {
-          substitutions[spec.name] = foundSub;
-        }
-      }
-    }
+        final hasEquipment = recipe.equipmentNeeded.every(
+          (e) => ownedEquipLower.contains(e.toLowerCase()),
+        );
+        final withinBudget = budget <= 0 || recipe.estimatedCost <= budget;
+        final matchesDiet =
+            _matchesDietaryPreferences(recipe, dietaryPreferences);
 
-    final hasEquipment =
-        recipe.equipmentNeeded.every((e) => ownedEquipment.contains(e));
-    final withinBudget = budget <= 0 || recipe.estimatedCost <= budget;
-    final matchesDiet =
-        _matchesDietaryPreferences(recipe, dietaryPreferences);
-
-    return RecipeMatch(
-      recipe: recipe,
-      missingIngredients: missing,
-      substitutionsAvailable: substitutions,
-      hasRequiredEquipment: hasEquipment,
-      withinBudget: withinBudget,
-      matchesDietaryPreferences: matchesDiet,
-    );
-  }).toList();
+        return RecipeMatch(
+          recipe: recipe,
+          missingIngredients: missing,
+          substitutionsAvailable: substitutions,
+          hasRequiredEquipment: hasEquipment,
+          withinBudget: withinBudget,
+          matchesDietaryPreferences: matchesDiet,
+        );
+      })
+      .toList();
 
   matches.sort((a, b) {
     if (a.isCookable != b.isCookable) {

@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
-import '../data/substitutions_database.dart';
 import '../models/recipe.dart';
 import '../services/preferences_service.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final Recipe recipe;
-  final List<String> ownedIngredients;
 
   const RecipeDetailScreen({
     super.key,
     required this.recipe,
-    this.ownedIngredients = const [],
   });
 
   @override
@@ -18,401 +15,433 @@ class RecipeDetailScreen extends StatefulWidget {
 }
 
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
-  final _preferencesService = PreferencesService();
-  bool isSaved = false;
+  final PreferencesService _prefs = PreferencesService();
+  bool isFavorite = false;
   bool isCooked = false;
-  bool isSavingCookedEntry = false;
-
-  late final Map<String, bool> checkedIngredients;
+  final Set<int> checkedIngredients = {};
 
   @override
   void initState() {
     super.initState();
-    _checkIsFavorite();
-    checkedIngredients = {
-      for (final ingredient in widget.recipe.ingredients)
-        ingredient: widget.ownedIngredients.contains(ingredient),
-    };
+    _checkFavorite();
   }
 
-  Future<void> _checkIsFavorite() async {
-    final favorites = await _preferencesService.loadFavoriteRecipeIds();
+  Future<void> _checkFavorite() async {
+    final favorites = await _prefs.loadFavoriteRecipeIds();
     if (!mounted) return;
-    setState(() {
-      isSaved = favorites.contains(widget.recipe.id);
-    });
+    setState(() => isFavorite = favorites.contains(widget.recipe.id));
   }
 
   Future<void> _toggleFavorite() async {
-    final newIsSaved =
-        await _preferencesService.toggleFavoriteRecipe(widget.recipe.id);
+    final newIsFav = await _prefs.toggleFavoriteRecipe(widget.recipe.id);
     if (!mounted) return;
-    setState(() {
-      isSaved = newIsSaved;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          newIsSaved
-              ? 'Saved "${widget.recipe.title}" to Favorites'
-              : 'Removed from Favorites',
-        ),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  String _difficultyLabel(Difficulty difficulty) {
-    switch (difficulty) {
-      case Difficulty.easy:
-        return 'Easy';
-      case Difficulty.medium:
-        return 'Medium';
-      case Difficulty.hard:
-        return 'Hard';
-    }
-  }
-
-  Color _difficultyColor(Difficulty difficulty) {
-    switch (difficulty) {
-      case Difficulty.easy:
-        return Colors.green;
-      case Difficulty.medium:
-        return Colors.orange;
-      case Difficulty.hard:
-        return Colors.red;
-    }
-  }
-
-  Future<void> _handleMarkAsCooked() async {
-    if (isCooked) {
-      setState(() => isCooked = false);
-      return;
-    }
-
-    setState(() {
-      isCooked = true;
-      isSavingCookedEntry = true;
-    });
-
-    await _preferencesService.addCookedEntry(
-      CookedEntry(
-        recipeId: widget.recipe.id,
-        recipeTitle: widget.recipe.title,
-        cookedAt: DateTime.now(),
-      ),
-    );
-
-    if (!mounted) return;
-    setState(() => isSavingCookedEntry = false);
+    setState(() => isFavorite = newIsFav);
   }
 
   @override
   Widget build(BuildContext context) {
     final recipe = widget.recipe;
-    final ownedLower = widget.ownedIngredients.map((i) => i.toLowerCase()).toSet();
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(recipe.title),
-        actions: [
-          IconButton(
-            icon: Icon(
-              isSaved ? Icons.favorite : Icons.favorite_border,
-              color: isSaved ? Colors.red : null,
+      body: CustomScrollView(
+        slivers: [
+          // Hero Image Header SliverAppBar
+          SliverAppBar(
+            expandedHeight: 280,
+            pinned: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
             ),
-            tooltip: isSaved ? 'Remove from Favorites' : 'Save to Favorites',
-            onPressed: _toggleFavorite,
+            actions: [
+              IconButton(
+                icon: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorite ? Colors.redAccent : Colors.white,
+                ),
+                onPressed: _toggleFavorite,
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    recipe.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      child: const Icon(Icons.restaurant, size: 60),
+                    ),
+                  ),
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black45,
+                          Colors.transparent,
+                          Colors.black87,
+                        ],
+                        stops: [0.0, 0.4, 1.0],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          recipe.title,
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.access_time, size: 14, color: Colors.white70),
+                            const SizedBox(width: 4),
+                            Text(recipe.prepTime, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                            const SizedBox(width: 12),
+                            const Icon(Icons.microwave, size: 14, color: Colors.white70),
+                            const SizedBox(width: 4),
+                            Text(recipe.equipmentNeeded.isNotEmpty ? recipe.equipmentNeeded.join(', ') : 'No equipment', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                            const SizedBox(width: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                recipe.difficulty.name.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Content Body
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Ingredients Section Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Ingredients',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        const Divider(height: 20),
+                        ...List.generate(recipe.detailedIngredients.length, (index) {
+                          final item = recipe.detailedIngredients[index];
+                          final isChecked = checkedIngredients.contains(index);
+
+                          return CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              item.fullDisplay,
+                              style: TextStyle(
+                                fontSize: 14,
+                                decoration: isChecked ? TextDecoration.lineThrough : null,
+                                color: isChecked ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface,
+                              ),
+                            ),
+                            value: isChecked,
+                            activeColor: theme.colorScheme.primary,
+                            onChanged: (val) {
+                              setState(() {
+                                if (val!) {
+                                  checkedIngredients.add(index);
+                                } else {
+                                  checkedIngredients.remove(index);
+                                }
+                              });
+                            },
+                          );
+                        })
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // MACROS PER SERVING Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'MACROS PER SERVING',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.1,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        // Macros grid (Calories, Protein, Carbs, Fat)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Calories', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${recipe.nutrition.calories}',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Protein', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${recipe.nutrition.proteinGrams.round()}g',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: theme.colorScheme.secondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Carbs', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${recipe.nutrition.carbsGrams.round()}g',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Fat', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${recipe.nutrition.fatGrams.round()}g',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Cooking Steps Section Header
+                  const Text(
+                    'Cooking Steps',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Numbered Step Cards
+                  ...List.generate(recipe.detailedSteps.length, (index) {
+                    final step = recipe.detailedSteps[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainer,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: theme.colorScheme.primary),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${index + 1}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  step.title,
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  step.description,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 80),
+                ],
+              ),
+            ),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  '${recipe.prepTime} • ₱${recipe.estimatedCost.toStringAsFixed(0)}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                Chip(
-                  label: Text(
-                    _difficultyLabel(recipe.difficulty),
-                    style: const TextStyle(color: Colors.white),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            icon: Icon(isCooked ? Icons.check_circle : Icons.check_circle_outline),
+            label: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                isCooked ? 'Cooked & Tracked!' : 'Mark as Cooked',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isCooked ? theme.colorScheme.surfaceContainerHighest : theme.colorScheme.primary,
+              foregroundColor: isCooked ? theme.colorScheme.primary : theme.colorScheme.onPrimary,
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            ),
+            onPressed: () async {
+              setState(() => isCooked = !isCooked);
+              if (isCooked) {
+                await _prefs.addCookedEntry(
+                  CookedEntry(
+                    recipeId: recipe.id,
+                    recipeTitle: recipe.title,
+                    cookedAt: DateTime.now(),
                   ),
-                  backgroundColor: _difficultyColor(recipe.difficulty),
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Ingredients',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            ...recipe.detailedIngredients.map((spec) {
-              final isOwned = ownedLower.contains(spec.name.toLowerCase());
-
-              // Check if user owns any valid substitute for missing ingredient
-              String? matchingSub;
-              if (!isOwned) {
-                for (final sub in spec.substitutes) {
-                  if (ownedLower.contains(sub.toLowerCase())) {
-                    matchingSub = sub;
-                    break;
-                  }
-                }
-                if (matchingSub == null) {
-                  final globalSub = findGlobalSubstitution(spec.name);
-                  if (globalSub != null) {
-                    for (final sub in globalSub.substitutes) {
-                      if (ownedLower.contains(sub.toLowerCase())) {
-                        matchingSub = sub;
-                        break;
-                      }
-                    }
-                  }
-                }
+                );
               }
-
-              return CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                dense: true,
-                title: Text(spec.name),
-                subtitle: isOwned
-                    ? null
-                    : matchingSub != null
-                        ? Text(
-                            'Substituted with $matchingSub in your pantry',
-                            style: const TextStyle(
-                                color: Colors.green,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold),
-                          )
-                        : const Text(
-                            'Missing',
-                            style:
-                                TextStyle(color: Colors.orange, fontSize: 12),
-                          ),
-                value: checkedIngredients[spec.name] ?? false,
-                onChanged: (val) {
-                  setState(() => checkedIngredients[spec.name] = val!);
-                },
-              );
-            }),
-
-            const SizedBox(height: 12),
-            _buildSubstitutionsSection(recipe, ownedLower),
-
-            const SizedBox(height: 12),
-            if (recipe.nutrition.calories > 0) ...[
-              const Text(
-                'Nutrition (per serving)',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildMacroColumn(
-                        label: 'Calories',
-                        value: '${recipe.nutrition.calories}',
-                        unit: 'kcal',
-                      ),
-                      _buildMacroColumn(
-                        label: 'Protein',
-                        value: '${recipe.nutrition.proteinGrams.toStringAsFixed(0)}',
-                        unit: 'g',
-                      ),
-                      _buildMacroColumn(
-                        label: 'Carbs',
-                        value: '${recipe.nutrition.carbsGrams.toStringAsFixed(0)}',
-                        unit: 'g',
-                      ),
-                      _buildMacroColumn(
-                        label: 'Fat',
-                        value: '${recipe.nutrition.fatGrams.toStringAsFixed(0)}',
-                        unit: 'g',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            const Text(
-              'Equipment needed',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: recipe.equipmentNeeded
-                  .map((e) => Chip(label: Text(e)))
-                  .toList(),
-            ),
-
-            const SizedBox(height: 16),
-            const Text(
-              'Steps',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            ...recipe.steps.asMap().entries.map((entry) {
-              final stepIndex = entry.key + 1;
-              final stepText = entry.value;
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(
-                      radius: 12,
-                      child: Text(
-                        '$stepIndex',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        stepText,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ],
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(isCooked ? 'Marked as cooked! Calories & macros tracked.' : 'Unmarked cooked recipe.'),
+                  duration: const Duration(seconds: 2),
                 ),
               );
-            }),
-
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isCooked ? Colors.green[700] : null,
-                  foregroundColor: isCooked ? Colors.white : null,
-                ),
-                onPressed: isSavingCookedEntry ? null : _handleMarkAsCooked,
-                icon: isSavingCookedEntry
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(
-                        isCooked ? Icons.check_circle : Icons.soup_kitchen,
-                      ),
-                label: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(
-                    isCooked ? 'Cooked today!' : 'Mark as cooked',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-              ),
-            ),
-          ],
+            },
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSubstitutionsSection(Recipe recipe, Set<String> ownedLower) {
-    final subTips = <Map<String, String>>[];
-
-    for (final spec in recipe.detailedIngredients) {
-      final isOwned = ownedLower.contains(spec.name.toLowerCase());
-      if (!isOwned) {
-        final global = findGlobalSubstitution(spec.name);
-        final subs = spec.substitutes.isNotEmpty
-            ? spec.substitutes
-            : (global?.substitutes ?? []);
-        final note = spec.substitutionNote ?? (global?.tip ?? '');
-
-        if (subs.isNotEmpty) {
-          subTips.add({
-            'ingredient': spec.name,
-            'substitutes': subs.join(', '),
-            'note': note,
-          });
-        }
-      }
-    }
-
-    if (subTips.isEmpty) return const SizedBox();
-
-    return Card(
-      color: Colors.amber[50],
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.amber.shade200),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.lightbulb_outline, color: Colors.amber[900]),
-                const SizedBox(width: 8),
-                Text(
-                  'Smart Ingredient Substitutions',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.amber[900],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ...subTips.map((tip) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
-                  '• Missing ${tip['ingredient']}? Try: ${tip['substitutes']}.${tip['note']!.isNotEmpty ? ' (${tip['note']})' : ''}',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMacroColumn({
-    required String label,
-    required String value,
-    required String unit,
-  }) {
-    return Column(
-      children: [
-        Text(
-          '$value $unit',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.grey, fontSize: 12),
-        ),
-      ],
     );
   }
 }

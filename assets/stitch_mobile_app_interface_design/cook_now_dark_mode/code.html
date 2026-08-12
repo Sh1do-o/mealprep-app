@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DormDish - What Can I Cook Right Now</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration (Provided) -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#783200",
+                        "secondary-fixed": "#ffdbca",
+                        "surface-tint": "#4edea3",
+                        "on-secondary": "#5c2400",
+                        "on-background": "#e1e2eb",
+                        "error": "#ffb4ab",
+                        "inverse-on-surface": "#0b1326",
+                        "primary-fixed": "#6ffbbe",
+                        "outline": "#8d919a",
+                        "border-low": "#3e485e",
+                        "leaf-green": "#059669",
+                        "surface-bright": "#31394d",
+                        "on-tertiary-fixed": "#410005",
+                        "tertiary-container": "#711419",
+                        "surface": "#0b1326",
+                        "surface-variant": "#3e485e",
+                        "on-surface-variant": "#c3c6cf",
+                        "price-tag-yellow": "#FDE047",
+                        "primary": "#4edea3",
+                        "tertiary": "#ffb3af",
+                        "tertiary-fixed-dim": "#ffb3af",
+                        "on-primary-fixed": "#002113",
+                        "on-primary-container": "#6ffbbe",
+                        "surface-muted": "#131b2e",
+                        "outline-variant": "#43474f",
+                        "background": "#0b1326",
+                        "on-tertiary-container": "#ffdad7",
+                        "surface-container-lowest": "#060e20",
+                        "surface-container": "#1b2338",
+                        "inverse-surface": "#e1e2eb",
+                        "inverse-primary": "#006c49",
+                        "secondary-container": "#5c2400",
+                        "on-secondary-container": "#ffdbca",
+                        "on-secondary-fixed": "#341100",
+                        "on-primary-fixed-variant": "#005236",
+                        "on-tertiary-fixed-variant": "#842225",
+                        "on-surface": "#e1e2eb",
+                        "surface-dim": "#0b1326",
+                        "on-tertiary": "#711419",
+                        "surface-container-low": "#131b2e",
+                        "primary-fixed-dim": "#4edea3",
+                        "on-error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#ffb690",
+                        "tertiary-fixed": "#ffdad7",
+                        "secondary": "#ffb690",
+                        "surface-container-high": "#262e43",
+                        "yolk-orange": "#FB923C",
+                        "surface-container-highest": "#31394e",
+                        "on-primary": "#003824",
+                        "primary-container": "#005236",
+                        "on-error": "#690005"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "12px",
+                        "base": "4px",
+                        "component-gap": "8px",
+                        "container-margin": "16px",
+                        "section-gap": "24px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Be Vietnam Pro", "sans-serif"],
+                        "price-display": ["Plus Jakarta Sans", "sans-serif"],
+                        "headline-md": ["Plus Jakarta Sans", "sans-serif"],
+                        "body-sm": ["Be Vietnam Pro", "sans-serif"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans", "sans-serif"],
+                        "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
+                        "label-caps": ["Be Vietnam Pro", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "price-display": ["18px", { "lineHeight": "24px", "fontWeight": "700" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;700&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        /* Smooth scrolling and basic reset */
+        html { scroll-behavior: smooth; }
+        body { -webkit-tap-highlight-color: transparent; }
+        
+        /* App Container Wrapper for Mobile Simulation on Desktop */
+        .app-container {
+            max-width: 420px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background-color: theme('colors.surface');
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            overflow-x: hidden;
+        }
+
+        /* Hide scrollbar for horizontal chip lists if they overflow */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface-muted text-on-surface antialiased">
+<div class="app-container flex flex-col">
+<!-- TopAppBar (from JSON) -->
+<header class="fixed top-0 w-full max-w-[420px] z-50 bg-surface border-b border-border-low flex items-center justify-between px-container-margin h-14">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary font-bold" data-icon="restaurant_menu" style="font-variation-settings: 'FILL' 1;">restaurant_menu</span>
+<h1 class="font-headline-md text-headline-md text-primary font-bold">DormDish</h1>
+</div>
+<!-- Optional trailing icon for symmetry/utility -->
+<button class="text-on-surface-variant hover:bg-surface-container rounded-full p-1 transition-colors duration-200">
+<span class="material-symbols-outlined">search</span>
+</button>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 pt-20 pb-24 px-container-margin overflow-y-auto">
+<!-- Header Section -->
+<section class="mb-section-gap">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-2">What's in your pantry?</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Tap ingredients you have right now.</p>
+</section>
+<!-- Ingredient Chips Section -->
+<section class="mb-section-gap">
+<div class="flex flex-wrap gap-component-gap" id="ingredient-chips">
+<!-- Chip 1 (Selected State Example) -->
+<button class="chip active group flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-primary bg-primary text-on-primary transition-all duration-200 shadow-sm" onclick="toggleChip(this)">
+<span class="material-symbols-outlined text-[16px] leading-none" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-body-sm text-body-sm font-bold">Rice</span>
+</button>
+<!-- Chip 2 (Selected State Example) -->
+<button class="chip active group flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-primary bg-primary text-on-primary transition-all duration-200 shadow-sm" onclick="toggleChip(this)">
+<span class="material-symbols-outlined text-[16px] leading-none" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-body-sm text-body-sm font-bold">Eggs</span>
+</button>
+<!-- Chip 3 -->
+<button class="chip flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant bg-transparent text-on-surface-variant hover:bg-surface-container transition-all duration-200" onclick="toggleChip(this)">
+<span class="material-symbols-outlined text-[16px] leading-none hidden">check_circle</span>
+<span class="font-body-sm text-body-sm">Canned Tuna</span>
+</button>
+<!-- Chip 4 -->
+<button class="chip flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant bg-transparent text-on-surface-variant hover:bg-surface-container transition-all duration-200" onclick="toggleChip(this)">
+<span class="material-symbols-outlined text-[16px] leading-none hidden">check_circle</span>
+<span class="font-body-sm text-body-sm">Instant Noodles</span>
+</button>
+<!-- Chip 5 -->
+<button class="chip flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant bg-transparent text-on-surface-variant hover:bg-surface-container transition-all duration-200" onclick="toggleChip(this)">
+<span class="material-symbols-outlined text-[16px] leading-none hidden">check_circle</span>
+<span class="font-body-sm text-body-sm">Veggies</span>
+</button>
+</div>
+</section>
+<!-- Time Toggle Section -->
+<section class="mb-section-gap">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-component-gap text-[18px]">Time to Cook</h3>
+<div class="flex p-1 bg-surface-container rounded-lg" id="time-toggles">
+<button class="flex-1 py-2 font-body-sm text-body-sm font-bold rounded-md bg-transparent text-on-surface-variant transition-colors" onclick="toggleTime(this)">5 min</button>
+<button class="flex-1 py-2 font-body-sm text-body-sm font-bold rounded-md bg-surface-container-lowest text-primary shadow-sm border border-border-low transition-colors" onclick="toggleTime(this)">15 min</button>
+<button class="flex-1 py-2 font-body-sm text-body-sm font-bold rounded-md bg-transparent text-on-surface-variant transition-colors" onclick="toggleTime(this)">30+ min</button>
+</div>
+</section>
+<!-- Results Section -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-headline-md text-headline-md text-on-surface">Suggestions</h3>
+<span class="font-label-caps text-label-caps text-primary bg-primary-container px-2 py-1 rounded-full">2 Found</span>
+</div>
+<div class="flex flex-col gap-container-margin">
+<!-- Recipe Card 1: Perfect Match (Highlighted) -->
+<article class="bg-surface-container-lowest rounded-xl border border-primary shadow-[0_4px_12px_rgba(78,222,163,0.1)] overflow-hidden relative cursor-pointer active:scale-[0.98] transition-transform">
+<!-- Perfect Match Badge -->
+<div class="absolute top-2 left-2 z-10 bg-yolk-orange text-white font-label-caps text-label-caps px-2 py-1 rounded-md flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                            Perfect Match
+                        </div>
+<!-- Image -->
+<div class="h-32 w-full bg-surface-container relative">
+<img class="w-full h-full object-cover opacity-90" data-alt="A vibrant, overhead shot of a simple but appetizing tuna and rice bowl in a small, cozy dorm room setting. The meal is beautifully arranged in a colorful ceramic bowl, topped with a soft-boiled egg, bright green scallions, and a drizzle of spicy mayo. The lighting is bright and energetic, reflecting a 'Culinary Optimism' aesthetic. The surrounding table shows subtle hints of student life, like a textbook edge and a colorful budget planner, emphasizing a budget-friendly yet high-quality lifestyle. The overall mood is warm, accessible, and highly appealing for a quick 15-minute meal." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjhGvjlaeqrFAEf--pI8ysTyA7YdlNmSB8JR62GaqM68BppDsHuNM6TLaKe4OI-0tQqmbU4GMQDoGfU1n1fXdKGdTQH3Gau8AsW_ze7IURlGXC2XQlgIUs7v7oOk8Na-pY9s4HOECwaPrJ2VE6XBrOcIMbQGA-Xg2jHRU7yDkbGAB6P1yP_v5hrEseydtKu-5SuI8ZvYIkSXeJ6N85_mwLozO6B4DlNKjZLJlu4XYH-ChxWv-OC2uT"/>
+</div>
+<!-- Content -->
+<div class="p-3">
+<h4 class="font-headline-md text-headline-md text-on-surface text-[18px] leading-snug mb-1">Dorm-Room Tuna Rice Bowl</h4>
+<div class="flex items-center gap-3 mb-2">
+<div class="flex items-center gap-1 text-on-surface-variant bg-surface-muted px-2 py-0.5 rounded text-body-sm font-body-sm">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+                                    10 min
+                                </div>
+<div class="flex items-center gap-1 text-on-surface-variant bg-surface-muted px-2 py-0.5 rounded text-body-sm font-body-sm">
+<span class="material-symbols-outlined text-[16px]">microwave</span>
+                                    Microwave
+                                </div>
+</div>
+<!-- Equipment needed detail -->
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">
+<span class="font-bold">You have:</span> Rice, Canned Tuna, Mayo
+                            </p>
+</div>
+</article>
+<!-- Recipe Card 2: Standard -->
+<article class="bg-surface-container-lowest rounded-xl border border-border-low overflow-hidden cursor-pointer active:scale-[0.98] transition-transform">
+<!-- Image -->
+<div class="h-32 w-full bg-surface-container relative">
+<img class="w-full h-full object-cover opacity-90" data-alt="A close-up, tempting image of a fluffy veggie omelet served on a minimalist white plate, set against a light green surface. The omelet is stuffed with vibrant bell peppers, spinach, and melted cheese, steaming slightly to show freshness. The scene is brightly lit with natural window light, creating a clean, modern, and energetic vibe consistent with a budget-friendly but healthy student diet. A simple fork and a glass of water sit nearby. The aesthetic is tactile and homey, avoiding any clinical feel, perfectly capturing the essence of accessible culinary optimism." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKH5qw4eGJn_F8VmpXSxtAOVleIFmBcvxivet8vx1DDFlXCJQ7HSIBcfTbqNnAp8iYbJo_64G3oPR0kKFDlKuzOPhOt1k4wefRBl7vpOlZqC5se8QAEWsTYjz-ZgdEFxRtLOicd2JHpJCl0Jeai2XcmSJIJW-szXVRa1Pf-dipwQqEOh52dBuUjXhumNnExSPalmUdrXWjOnYj5uCS0mdyWMM7EH8TLC_IzfA_8XqTT97r4F-7t3c8"/>
+</div>
+<!-- Content -->
+<div class="p-3">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-headline-md text-headline-md text-on-surface text-[18px] leading-snug">Quick Veggie Egg Scramble</h4>
+<!-- Missing ingredient warning -->
+<span class="material-symbols-outlined text-error" title="Missing Veggies">warning</span>
+</div>
+<div class="flex items-center gap-3 mb-2">
+<div class="flex items-center gap-1 text-on-surface-variant bg-surface-muted px-2 py-0.5 rounded text-body-sm font-body-sm">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+                                    15 min
+                                </div>
+<div class="flex items-center gap-1 text-on-surface-variant bg-surface-muted px-2 py-0.5 rounded text-body-sm font-body-sm">
+<span class="material-symbols-outlined text-[16px]">skillet</span>
+                                    Skillet
+                                </div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">
+<span class="text-error font-bold">Missing:</span> Fresh Veggies
+                            </p>
+</div>
+</article>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (from JSON) -->
+<!-- Active state applied to 'Cook Now' based on Semantic Mapping logic -->
+<nav class="fixed bottom-0 w-full max-w-[420px] z-50 bg-surface border-t border-border-low flex justify-around items-center h-16 px-gutter pb-safe">
+<!-- Tab 1: Cook Now (ACTIVE) -->
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-3 py-1 scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined mb-0.5" data-icon="skillet" data-weight="fill" style="font-variation-settings: 'FILL' 1;">skillet</span>
+<span class="font-label-caps text-label-caps">Cook Now</span>
+</button>
+<!-- Tab 2: Planner (INACTIVE) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-container-high transition-transform duration-150 active:scale-90 rounded-xl">
+<span class="material-symbols-outlined mb-0.5" data-icon="calendar_month">calendar_month</span>
+<span class="font-label-caps text-label-caps">Planner</span>
+</button>
+<!-- Tab 3: Grocery (INACTIVE) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-container-high transition-transform duration-150 active:scale-90 rounded-xl">
+<span class="material-symbols-outlined mb-0.5" data-icon="shopping_cart">shopping_cart</span>
+<span class="font-label-caps text-label-caps">Grocery</span>
+</button>
+<!-- Tab 4: Profile (INACTIVE) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-container-high transition-transform duration-150 active:scale-90 rounded-xl">
+<span class="material-symbols-outlined mb-0.5" data-icon="person">person</span>
+<span class="font-label-caps text-label-caps">Profile</span>
+</button>
+</nav>
+<!-- Floating Action Button (Suppressed as per rules: Contextual FAB Suppression on search/filter primary screens unless explicitly a creation action. We use a main flow here.) -->
+</div>
+<!-- Micro-interactions Script -->
+<script>
+        // Toggle Chip Selection Logic
+        function toggleChip(btn) {
+            const isSelected = btn.classList.contains('active');
+            const icon = btn.querySelector('.material-symbols-outlined');
+            const text = btn.querySelector('.font-body-sm');
+            
+            if (isSelected) {
+                // Deactivate
+                btn.classList.remove('active', 'border-primary', 'bg-primary', 'text-on-primary', 'shadow-sm');
+                btn.classList.add('border-outline-variant', 'bg-transparent', 'text-on-surface-variant');
+                icon.classList.add('hidden');
+                text.classList.remove('font-bold');
+            } else {
+                // Activate
+                btn.classList.add('active', 'border-primary', 'bg-primary', 'text-on-primary', 'shadow-sm');
+                btn.classList.remove('border-outline-variant', 'bg-transparent', 'text-on-surface-variant');
+                icon.classList.remove('hidden');
+                text.classList.add('font-bold');
+            }
+            
+            // Add a subtle click animation
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => { btn.style.transform = 'scale(1)'; }, 100);
+        }
+
+        // Toggle Time Selection Logic
+        function toggleTime(selectedBtn) {
+            const container = document.getElementById('time-toggles');
+            const buttons = container.querySelectorAll('button');
+            
+            // Reset all
+            buttons.forEach(btn => {
+                btn.className = "flex-1 py-2 font-body-sm text-body-sm font-bold rounded-md bg-transparent text-on-surface-variant transition-colors";
+            });
+            
+            // Set active
+            selectedBtn.className = "flex-1 py-2 font-body-sm text-body-sm font-bold rounded-md bg-surface-container-lowest text-primary shadow-sm border border-border-low transition-colors";
+        }
+    </script>
+</body></html>

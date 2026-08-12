@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>DormDish - Weekly Meal Planner</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;family=Work+Sans:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "surface-container": "#171f33",
+                "secondary": "#45dfa4",
+                "on-tertiary": "#402d00",
+                "on-primary-fixed-variant": "#005236",
+                "surface": "#0b1326",
+                "on-tertiary-container": "#4a3500",
+                "on-surface": "#dae2fd",
+                "on-primary": "#003824",
+                "surface-container-highest": "#2d3449",
+                "tertiary-fixed": "#ffdf9f",
+                "on-tertiary-fixed-variant": "#5c4300",
+                "inverse-primary": "#006c49",
+                "surface-tint": "#4edea3",
+                "on-secondary-fixed": "#002114",
+                "on-error-container": "#ffdad6",
+                "primary-fixed": "#6ffbbe",
+                "outline": "#86948a",
+                "background": "#0b1326",
+                "primary": "#4edea3",
+                "primary-fixed-dim": "#4edea3",
+                "surface-bright": "#31394d",
+                "on-primary-fixed": "#002113",
+                "surface-container-low": "#131b2e",
+                "secondary-container": "#00bd85",
+                "tertiary-fixed-dim": "#f9bd22",
+                "on-primary-container": "#00422b",
+                "secondary-fixed-dim": "#45dfa4",
+                "inverse-on-surface": "#283044",
+                "inverse-surface": "#dae2fd",
+                "on-tertiary-fixed": "#261a00",
+                "error": "#ffb4ab",
+                "tertiary-container": "#ce9a00",
+                "secondary-fixed": "#68fcbf",
+                "on-error": "#690005",
+                "on-secondary": "#003825",
+                "error-container": "#93000a",
+                "surface-container-high": "#222a3d",
+                "on-secondary-fixed-variant": "#005137",
+                "tertiary": "#f9bd22",
+                "primary-container": "#10b981",
+                "on-surface-variant": "#bbcabf",
+                "surface-variant": "#2d3449",
+                "surface-container-lowest": "#060e20",
+                "outline-variant": "#3c4a42",
+                "on-background": "#dae2fd",
+                "on-secondary-container": "#00452e",
+                "surface-dim": "#0b1326"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "margin-mobile": "16px",
+                "xs": "4px",
+                "md": "16px",
+                "lg": "24px",
+                "unit": "4px",
+                "sm": "8px",
+                "xl": "40px",
+                "gutter": "16px",
+                "margin-desktop": "64px"
+        },
+        "fontFamily": {
+                "nutrition-value": [
+                        "Work Sans"
+                ],
+                "nutrition-label": [
+                        "Be Vietnam Pro"
+                ],
+                "headline-xl": [
+                        "Plus Jakarta Sans"
+                ],
+                "coach-dialogue": [
+                        "Be Vietnam Pro"
+                ],
+                "headline-md": [
+                        "Plus Jakarta Sans"
+                ],
+                "body-lg": [
+                        "Work Sans"
+                ],
+                "headline-lg": [
+                        "Plus Jakarta Sans"
+                ],
+                "body-md": [
+                        "Work Sans"
+                ]
+        },
+        "fontSize": {
+                "nutrition-value": [
+                        "14px",
+                        {
+                                "lineHeight": "14px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "nutrition-label": [
+                        "12px",
+                        {
+                                "lineHeight": "12px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-xl": [
+                        "40px",
+                        {
+                                "lineHeight": "48px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "coach-dialogue": [
+                        "18px",
+                        {
+                                "lineHeight": "26px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body { -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .fab-shadow { box-shadow: 0 8px 24px rgba(78, 222, 163, 0.25); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background font-body-lg min-h-screen pb-24 md:pb-0 pt-14 flex flex-col md:flex-row">
+<!-- TopAppBar (Mobile & Web) -->
+<header class="fixed top-0 w-full z-50 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile md:px-margin-desktop h-14 w-full">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">restaurant_menu</span>
+</div>
+<h1 class="font-headline-md text-headline-md text-primary font-bold absolute left-1/2 -translate-x-1/2">Weekly Plan</h1>
+<div class="w-6"></div> <!-- Spacer for centering -->
+</header>
+<!-- SideNav (Web Only) -->
+<nav class="hidden md:flex flex-col w-64 fixed h-full pt-14 border-r border-outline-variant bg-surface z-40 px-gutter py-6 gap-2">
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-surface-container transition-colors duration-200 text-on-surface-variant font-nutrition-label text-nutrition-label" href="#">
+<span class="material-symbols-outlined">skillet</span>
+            Cook Now
+        </a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl bg-primary-container text-on-primary-container font-nutrition-label text-nutrition-label" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+            Planner
+        </a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-surface-container transition-colors duration-200 text-on-surface-variant font-nutrition-label text-nutrition-label" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+            Grocery
+        </a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-surface-container transition-colors duration-200 text-on-surface-variant font-nutrition-label text-nutrition-label" href="#">
+<span class="material-symbols-outlined">person</span>
+            Profile
+        </a>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 w-full max-w-[420px] mx-auto md:max-w-3xl md:ml-64 px-margin-mobile md:px-margin-desktop pt-6 flex flex-col gap-lg relative pb-20">
+<!-- Coach Dialogue Bubble -->
+<section class="bg-surface-container border border-outline-variant rounded-2xl p-4 flex gap-4 items-start relative shadow-sm">
+<div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-secondary-container">psychiatry</span>
+</div>
+<div class="flex-1">
+<p class="font-coach-dialogue text-coach-dialogue text-on-surface">You've been eating healthy recently! Keep up the great work. 🥗</p>
+</div>
+</section>
+<!-- Budget Indicator -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex items-center justify-between shadow-sm">
+<div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-1">Weekly Budget</p>
+<div class="flex items-baseline gap-1">
+<span class="font-headline-lg text-headline-lg text-on-surface">₱650</span>
+<span class="font-body-md text-body-md text-on-surface-variant">/ ₱700 spent</span>
+</div>
+</div>
+<div class="w-12 h-12 rounded-full border-4 border-surface-variant flex items-center justify-center relative">
+<!-- Simple visual indicator -->
+<svg class="absolute inset-0 w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="text-surface-variant" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="100, 100" stroke-width="4"></path>
+<path class="text-secondary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="92, 100" stroke-width="4"></path>
+</svg>
+<span class="material-symbols-outlined text-secondary text-sm">warning</span>
+</div>
+</section>
+<!-- Nutritional Summary Card -->
+<section class="bg-surface-container-low border border-outline-variant rounded-xl p-4 flex justify-between items-center shadow-sm">
+<div class="flex flex-col items-center">
+<span class="font-nutrition-label text-nutrition-label text-on-surface-variant uppercase">Calories</span>
+<span class="font-nutrition-value text-nutrition-value text-on-surface mt-1">1,450</span>
+</div>
+<div class="w-px h-8 bg-outline-variant/50"></div>
+<div class="flex flex-col items-center">
+<span class="font-nutrition-label text-nutrition-label text-on-surface-variant uppercase">Protein</span>
+<span class="font-nutrition-value text-nutrition-value text-on-surface mt-1">68g</span>
+</div>
+<div class="w-px h-8 bg-outline-variant/50"></div>
+<div class="flex flex-col items-center">
+<span class="font-nutrition-label text-nutrition-label text-on-surface-variant uppercase">Carbs</span>
+<span class="font-nutrition-value text-nutrition-value text-on-surface mt-1">180g</span>
+</div>
+</section>
+<!-- Day Scroller -->
+<section class="-mx-margin-mobile md:mx-0 px-margin-mobile md:px-0 overflow-x-auto no-scrollbar py-2">
+<div class="flex gap-2 w-max">
+<button class="flex flex-col items-center justify-center w-14 h-16 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant">
+<span class="font-nutrition-label text-nutrition-label uppercase">Mon</span>
+<span class="font-body-lg text-body-lg">12</span>
+</button>
+<button class="flex flex-col items-center justify-center w-14 h-16 rounded-lg border-2 border-primary bg-surface-container-lowest text-primary relative shadow-[0_4px_12px_rgba(78,222,163,0.1)]">
+<span class="font-nutrition-label text-nutrition-label font-bold uppercase">Tue</span>
+<span class="font-body-lg text-body-lg font-bold">13</span>
+<div class="absolute -top-1 -right-1 w-3 h-3 bg-secondary rounded-full border-2 border-surface-container-lowest"></div>
+</button>
+<button class="flex flex-col items-center justify-center w-14 h-16 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant">
+<span class="font-nutrition-label text-nutrition-label uppercase">Wed</span>
+<span class="font-body-lg text-body-lg">14</span>
+</button>
+<button class="flex flex-col items-center justify-center w-14 h-16 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant">
+<span class="font-nutrition-label text-nutrition-label uppercase">Thu</span>
+<span class="font-body-lg text-body-lg">15</span>
+</button>
+<button class="flex flex-col items-center justify-center w-14 h-16 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant opacity-50">
+<span class="font-nutrition-label text-nutrition-label uppercase">Fri</span>
+<span class="font-body-lg text-body-lg">16</span>
+</button>
+<button class="flex flex-col items-center justify-center w-14 h-16 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant opacity-50">
+<span class="font-nutrition-label text-nutrition-label uppercase">Sat</span>
+<span class="font-body-lg text-body-lg">17</span>
+</button>
+</div>
+</section>
+<!-- Meals Grid (Bento-style layout) -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<!-- Breakfast Card -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden flex flex-col md:col-span-2 shadow-sm relative group cursor-pointer">
+<div class="h-32 bg-surface-variant w-full relative">
+<img class="w-full h-full object-cover" data-alt="A bright, overhead shot of a simple, budget-friendly student breakfast consisting of scrambled eggs, a piece of toast, and a small black coffee on a clean, modern white plate. The lighting is sunny morning light, creating a fresh, energetic vibe consistent with a modern light-mode culinary app interface. Soft white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbRxFiXM3e1iqz3dQmbVBXVuxbq0hIz2ZvPlhWVFQgEv1yXqQmnRxIDzjO982CL3ztatP8LRJlv528Xm8fUstJfH6NoKDGitQrCfa1B_AgPUNpOC7dBH6xZ9wR2W5OkPT0Dv92MsY6dAZeRi90jmV2RKxympko3e4VH2giZpakW1BlBuiDPFnH1kB6TkgBSlYQIrucJJbdTycj1QRCcO1ZHBHIw4l2CoRyF8z-hiDj32vkw394ov7f"/>
+<div class="absolute top-2 left-2 bg-surface/90 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-tertiary" style="font-variation-settings: 'FILL' 1;">light_mode</span>
+<span class="font-nutrition-label text-nutrition-label text-on-surface">Breakfast</span>
+</div>
+</div>
+<div class="p-3">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline-md text-headline-md text-on-surface">Egg &amp; Toast Combo</h3>
+<span class="font-headline-md text-headline-md text-primary">₱45</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant mt-2">
+<div class="flex items-center gap-1 bg-surface-container px-2 py-0.5 rounded-sm">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span class="font-body-md text-body-md text-xs">10m</span>
+</div>
+<label class="flex items-center gap-2 cursor-pointer bg-surface-container px-3 py-1 rounded-lg border border-outline-variant hover:bg-surface-container-high transition-colors">
+<input checked="" class="w-4 h-4 rounded border-outline text-primary focus:ring-primary bg-surface-container-lowest" type="checkbox"/>
+<span class="font-nutrition-label text-nutrition-label text-on-surface">Done</span>
+</label>
+</div>
+</div>
+</article>
+<!-- Lunch Card -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden flex flex-col shadow-sm cursor-pointer hover:shadow-md transition-shadow">
+<div class="h-24 bg-surface-variant w-full relative">
+<img class="w-full h-full object-cover" data-alt="A close-up, appetizing photo of a quick student lunch: a hearty bowl of instant noodles upgraded with green onions, a soft boiled egg, and a slice of processed cheese. The aesthetic is tactile and warm, lit brightly to look premium despite the cheap ingredients, fitting a modern culinary app. White background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBoqNQwzARr2mlkBSQoyEPnWtn1A9EwV9rnR5LOqEYuajJn33UK4ATd6-wdwsBF3CSko62TnziqbxFmjoKTqyfWiGX5b6AxL5Vd-HCYX2RhaZnAT5Wj9Xj0DDGGmui2Va91Ksen6eU_pkX0d6iMMmS-YCw8NcF17buCHCaWePVJpV97nZiAApElV4-ud0HtaqihsKE89hf5nB2BU4Y5FuKo6Hbp_uFzzGMiP6LK4C1bfUzNlIoOi9eH"/>
+<div class="absolute top-2 left-2 bg-surface/90 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">wb_sunny</span>
+<span class="font-nutrition-label text-nutrition-label text-on-surface">Lunch</span>
+</div>
+</div>
+<div class="p-3 flex-1 flex flex-col justify-between">
+<div>
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline-md text-headline-md text-on-surface text-sm leading-tight">Upgraded Noodles</h3>
+</div>
+<p class="font-body-md text-body-md text-error text-xs flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px]">warning</span> Missing: Egg
+                        </p>
+</div>
+<div class="flex justify-between items-end mt-2">
+<div class="flex flex-col gap-2 w-full">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-1 bg-surface-container px-2 py-0.5 rounded-sm w-max">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span class="font-body-md text-body-md text-xs">15m</span>
+</div>
+<span class="font-headline-md text-headline-md text-primary text-base">₱65</span>
+</div>
+<label class="flex items-center gap-2 cursor-pointer bg-surface-container px-3 py-1 rounded-lg border border-outline-variant hover:bg-surface-container-high transition-colors w-max">
+<input class="w-4 h-4 rounded border-outline text-primary focus:ring-primary bg-surface-container-lowest" type="checkbox"/>
+<span class="font-nutrition-label text-nutrition-label text-on-surface">Mark as Cooked</span>
+</label>
+</div>
+</div>
+</div>
+</article>
+<!-- Dinner Card -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden flex flex-col shadow-sm cursor-pointer hover:shadow-md transition-shadow">
+<div class="h-24 bg-surface-variant w-full relative">
+<img class="w-full h-full object-cover" data-alt="A comforting, warm shot of a budget dinner: rice topped with canned tuna flakes sauteed with onions and a dash of soy sauce. Served in a simple, modern bowl on a white surface. The lighting is cozy but clear, emphasizing the tactile warmth of a home-cooked dorm meal. Energetic and approachable style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwvUSnSAov79X8eW2ELb-7JL1oMAbDe3JQfxK6b5QHukVLUeoXY5Dt02jAUJNT_1GuB8RZ8PCR0BqnVNGiu07HeL4oGOsLq0AA390IyeTBGTRTc0U5o0vXldi1damCVG7zr1ZeLaycX0na83HMk23Qe1PGjNSlLNntJF34rqQsMxr4xA_Ks5iunIluEsa7SmkQeFMIKnoOHP7rwgDUO5yqhKZgyn1MQrp4X-Us7r37VvjpUDV3uwXk"/>
+<div class="absolute top-2 left-2 bg-surface/90 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-tertiary" style="font-variation-settings: 'FILL' 1;">nightlight_round</span>
+<span class="font-nutrition-label text-nutrition-label text-on-surface">Dinner</span>
+</div>
+</div>
+<div class="p-3 flex-1 flex flex-col justify-between">
+<div>
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline-md text-headline-md text-on-surface text-sm leading-tight">Tuna Rice Bowl</h3>
+</div>
+</div>
+<div class="flex justify-between items-end mt-2">
+<div class="flex flex-col gap-2 w-full">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-1 bg-surface-container px-2 py-0.5 rounded-sm w-max">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span class="font-body-md text-body-md text-xs">20m</span>
+</div>
+<span class="font-headline-md text-headline-md text-primary text-base">₱85</span>
+</div>
+<label class="flex items-center gap-2 cursor-pointer bg-surface-container px-3 py-1 rounded-lg border border-outline-variant hover:bg-surface-container-high transition-colors w-max">
+<input class="w-4 h-4 rounded border-outline text-primary focus:ring-primary bg-surface-container-lowest" type="checkbox"/>
+<span class="font-nutrition-label text-nutrition-label text-on-surface">Mark as Cooked</span>
+</label>
+</div>
+</div>
+</div>
+</article>
+</section>
+</main>
+<!-- Floating Action Button -->
+<button class="fixed bottom-20 md:bottom-8 right-4 md:right-8 bg-primary text-on-primary flex items-center gap-2 px-4 py-3 rounded-full fab-shadow z-40 hover:bg-primary-fixed transition-colors duration-200 active:scale-95">
+<span class="material-symbols-outlined">autorenew</span>
+<span class="font-headline-md text-headline-md text-sm">Regenerate Plan</span>
+</button>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 bg-surface border-t border-outline-variant flex justify-around items-center h-16 w-full px-gutter pb-[env(safe-area-inset-bottom)]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-container-high scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">skillet</span>
+<span class="font-nutrition-label text-nutrition-label">Cook Now</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-3 py-1 scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+<span class="font-nutrition-label text-nutrition-label">Planner</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-container-high scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="font-nutrition-label text-nutrition-label">Grocery</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-container-high scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-nutrition-label text-nutrition-label">Profile</span>
+</a>
+</nav>
+</body></html>

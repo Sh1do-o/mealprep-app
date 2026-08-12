@@ -1,8 +1,4 @@
 // Rough nutrition estimate for one serving of a recipe.
-// Values are placeholders for now (real sourcing comes later,
-// e.g. from a public nutrition database per ingredient).
-// Kept as a *separate* class so it's easy to leave empty/zero
-// on recipes you haven't researched yet, without breaking anything.
 class NutritionEstimate {
   final int calories;
   final double proteinGrams;
@@ -17,57 +13,85 @@ class NutritionEstimate {
   });
 }
 
-// Represents a specific ingredient and its student-friendly substitutes.
+// Represents a specific ingredient, its quantity display, and student-friendly substitutes.
 class IngredientSpec {
   final String name;
+  final String? quantity; // e.g. "1 packet", "1 can (drained)"
+  final double? priceEstimate; // in PHP
   final List<String> substitutes;
   final String? substitutionNote;
 
   const IngredientSpec({
     required this.name,
+    this.quantity,
+    this.priceEstimate,
     this.substitutes = const [],
     this.substitutionNote,
   });
+
+  String get fullDisplay => quantity != null ? '$quantity $name' : name;
 }
 
-// Simple difficulty label shown as a badge on the recipe detail screen.
 enum Difficulty { easy, medium, hard }
+enum MealType { breakfast, lunch, dinner }
 
-// This class represents a single recipe.
+class RecipeStep {
+  final String title;
+  final String description;
+
+  const RecipeStep({
+    required this.title,
+    required this.description,
+  });
+}
+
+// Represents a single recipe with full visual and nutritional spec.
 class Recipe {
   final String id;
   final String title;
-  final String prepTime; // e.g. "15 mins"
+  final String imageUrl;
+  final String prepTime; // e.g. "10 min"
   final double estimatedCost; // in PHP
   final List<String> equipmentNeeded; // e.g. ["Rice cooker"]
   final List<IngredientSpec> detailedIngredients;
-  final List<String> steps;
-  final NutritionEstimate nutrition; // defaults to all-zero if not provided
+  final List<RecipeStep> detailedSteps;
+  final NutritionEstimate nutrition;
   final Difficulty difficulty;
+  final MealType mealType;
 
   final bool isVegetarian;
   final bool isHalal;
   final bool containsVegetables;
 
-  // Convenient getter for simple string list of ingredient names.
   List<String> get ingredients =>
       detailedIngredients.map((e) => e.name).toList();
+
+  List<String> get steps =>
+      detailedSteps.map((s) => '${s.title}: ${s.description}').toList();
 
   Recipe({
     required this.id,
     required this.title,
+    this.imageUrl = '',
     required this.prepTime,
     required this.estimatedCost,
     required this.equipmentNeeded,
     List<IngredientSpec>? detailedIngredients,
     List<String>? ingredients,
-    required this.steps,
+    List<RecipeStep>? detailedSteps,
+    List<String>? steps,
     this.nutrition = const NutritionEstimate(),
     this.difficulty = Difficulty.easy,
+    this.mealType = MealType.lunch,
     this.isVegetarian = false,
     this.isHalal = true,
     this.containsVegetables = false,
-  }) : detailedIngredients = detailedIngredients ??
+  })  : detailedIngredients = detailedIngredients ??
             (ingredients?.map((name) => IngredientSpec(name: name)).toList() ??
+                const []),
+        detailedSteps = detailedSteps ??
+            (steps
+                    ?.map((s) => RecipeStep(title: 'Step', description: s))
+                    .toList() ??
                 const []);
 }

@@ -68,11 +68,21 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final favorites = _favoriteRecipes;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Saved Favorites'),
+        title: Row(
+          children: [
+            Icon(Icons.favorite, color: Colors.redAccent, size: 22),
+            const SizedBox(width: 8),
+            const Text(
+              'Saved Favorites',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -86,16 +96,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       decoration: InputDecoration(
                         hintText: 'Search saved recipes...',
                         prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                       ),
                     ),
                   ),
                 Expanded(
                   child: _favoriteIds.isEmpty
-                      ? _buildEmptyState()
+                      ? _buildEmptyState(context)
                       : favorites.isEmpty
                           ? const Center(
                               child: Text('No saved meals match your search.'),
@@ -105,35 +112,17 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                               itemCount: favorites.length,
                               itemBuilder: (context, index) {
                                 final recipe = favorites[index];
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.surfaceContainer,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                                    ),
                                   ),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.all(12),
-                                    leading: CircleAvatar(
-                                      backgroundColor: Theme.of(context)
-                                          .colorScheme
-                                          .primaryContainer,
-                                      child: const Icon(Icons.favorite,
-                                          color: Colors.red, size: 20),
-                                    ),
-                                    title: Text(
-                                      recipe.title,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    subtitle: Text(
-                                      '${recipe.prepTime} • ₱${recipe.estimatedCost.toInt()} • ${recipe.nutrition.calories} kcal',
-                                    ),
-                                    trailing: IconButton(
-                                      icon: const Icon(Icons.favorite,
-                                          color: Colors.red),
-                                      tooltip: 'Remove from Favorites',
-                                      onPressed: () =>
-                                          _removeFavorite(recipe.id),
-                                    ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: InkWell(
                                     onTap: () async {
                                       await Navigator.push(
                                         context,
@@ -145,6 +134,48 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                       );
                                       _loadFavorites();
                                     },
+                                    child: Row(
+                                      children: [
+                                        Image.network(
+                                          recipe.imageUrl,
+                                          width: 100,
+                                          height: 90,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => Container(
+                                            width: 100,
+                                            height: 90,
+                                            color: theme.colorScheme.surfaceContainerHighest,
+                                            child: const Icon(Icons.restaurant),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                recipe.title,
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.bold, fontSize: 16),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                '${recipe.prepTime} • ₱${recipe.estimatedCost.toInt()} • ${recipe.nutrition.calories} kcal',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: theme.colorScheme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.favorite, color: Colors.redAccent),
+                                          tooltip: 'Remove from Favorites',
+                                          onPressed: () => _removeFavorite(recipe.id),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 );
                               },
@@ -155,7 +186,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -165,20 +197,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             Icon(
               Icons.favorite_border_rounded,
               size: 64,
-              color: Colors.grey[400],
+              color: theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'No Favorites Saved Yet',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Tap the heart icon on any recipe detail screen to save your go-to dorm meals for fast access!',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             ),
           ],
         ),

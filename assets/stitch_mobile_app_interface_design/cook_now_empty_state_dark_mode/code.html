@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>What Can I Cook Right Now? - Empty State</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=Work+Sans:wght@400;700&amp;family=Be+Vietnam+Pro:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-background": "#dae2fd",
+                      "on-primary": "#003824",
+                      "surface-container-highest": "#2d3449",
+                      "on-primary-fixed-variant": "#005236",
+                      "surface-container": "#171f33",
+                      "on-surface-variant": "#bbcabf",
+                      "primary-container": "#10b981",
+                      "surface-container-high": "#222a3d",
+                      "outline": "#86948a",
+                      "on-secondary-container": "#00452e",
+                      "on-surface": "#dae2fd",
+                      "tertiary-container": "#ce9a00",
+                      "tertiary": "#f9bd22",
+                      "on-tertiary-fixed-variant": "#5c4300",
+                      "outline-variant": "#3c4a42",
+                      "on-secondary-fixed": "#002114",
+                      "on-error": "#690005",
+                      "surface-container-low": "#131b2e",
+                      "inverse-on-surface": "#283044",
+                      "tertiary-fixed-dim": "#f9bd22",
+                      "primary-fixed-dim": "#4edea3",
+                      "surface-bright": "#31394d",
+                      "secondary-fixed-dim": "#45dfa4",
+                      "surface-variant": "#2d3449",
+                      "inverse-surface": "#dae2fd",
+                      "background": "#0b1326",
+                      "inverse-primary": "#006c49",
+                      "secondary-container": "#00bd85",
+                      "on-tertiary": "#402d00",
+                      "surface-dim": "#0b1326",
+                      "error": "#ffb4ab",
+                      "on-error-container": "#ffdad6",
+                      "secondary": "#45dfa4",
+                      "surface-tint": "#4edea3",
+                      "secondary-fixed": "#68fcbf",
+                      "on-secondary-fixed-variant": "#005137",
+                      "surface": "#0b1326",
+                      "tertiary-fixed": "#ffdf9f",
+                      "on-primary-container": "#00422b",
+                      "surface-container-lowest": "#060e20",
+                      "primary-fixed": "#6ffbbe",
+                      "on-tertiary-container": "#4a3500",
+                      "on-primary-fixed": "#002113",
+                      "on-secondary": "#003825",
+                      "on-tertiary-fixed": "#261a00",
+                      "primary": "#4edea3",
+                      "error-container": "#93000a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "lg": "24px",
+                      "margin-desktop": "64px",
+                      "sm": "8px",
+                      "unit": "4px",
+                      "md": "16px",
+                      "xl": "40px",
+                      "margin-mobile": "16px",
+                      "xs": "4px",
+                      "gutter": "16px"
+              },
+              "fontFamily": {
+                      "body-md": [
+                              "Work Sans"
+                      ],
+                      "nutrition-value": [
+                              "Work Sans"
+                      ],
+                      "headline-lg": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "nutrition-label": [
+                              "Be Vietnam Pro"
+                      ],
+                      "headline-md": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-lg": [
+                              "Work Sans"
+                      ],
+                      "coach-dialogue": [
+                              "Be Vietnam Pro"
+                      ],
+                      "headline-xl": [
+                              "Plus Jakarta Sans"
+                      ]
+              },
+              "fontSize": {
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "nutrition-value": [
+                              "14px",
+                              {
+                                      "lineHeight": "14px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "nutrition-label": [
+                              "12px",
+                              {
+                                      "lineHeight": "12px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "coach-dialogue": [
+                              "18px",
+                              {
+                                      "lineHeight": "26px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-xl": [
+                              "40px",
+                              {
+                                      "lineHeight": "48px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Custom scrollbar for ingredient chips */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 border-b border-outline bg-background flex items-center justify-between px-gutter md:px-margin-desktop h-14">
+<div class="flex items-center gap-sm">
+<span aria-hidden="true" class="material-symbols-outlined text-primary-fixed-dim" data-icon="restaurant_menu">restaurant_menu</span>
+<span class="font-headline-md text-headline-md text-primary-fixed-dim font-bold">DormDish</span>
+</div>
+<!-- Desktop Nav Placeholder (Hidden on Mobile) -->
+<nav class="hidden md:flex gap-lg items-center">
+<a class="text-primary-fixed-dim font-headline-md text-headline-md flex items-center gap-xs hover:bg-surface-variant px-3 py-2 rounded-lg transition-colors duration-200" href="#">
+<span aria-hidden="true" class="material-symbols-outlined filled-icon">skillet</span>
+                Cook Now
+            </a>
+<a class="text-on-surface-variant font-headline-md text-headline-md flex items-center gap-xs hover:bg-surface-variant px-3 py-2 rounded-lg transition-colors duration-200" href="#">
+<span aria-hidden="true" class="material-symbols-outlined">calendar_month</span>
+                Planner
+            </a>
+<a class="text-on-surface-variant font-headline-md text-headline-md flex items-center gap-xs hover:bg-surface-variant px-3 py-2 rounded-lg transition-colors duration-200" href="#">
+<span aria-hidden="true" class="material-symbols-outlined">shopping_cart</span>
+                Grocery
+            </a>
+<a class="text-on-surface-variant font-headline-md text-headline-md flex items-center gap-xs hover:bg-surface-variant px-3 py-2 rounded-lg transition-colors duration-200" href="#">
+<span aria-hidden="true" class="material-symbols-outlined">person</span>
+                Profile
+            </a>
+</nav>
+<!-- Mobile Menu Action (Optional/Mock) -->
+<div class="md:hidden flex items-center">
+<button class="text-on-surface-variant hover:text-primary-fixed-dim transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-grow pt-20 pb-24 px-gutter md:px-margin-desktop flex flex-col bg-background">
+<!-- Ingredients Selector Section (Fixed near top below header) -->
+<section class="mb-lg sticky top-16 z-40 bg-background pt-sm pb-md">
+<h1 class="font-headline-lg text-headline-lg mb-sm text-on-surface">What Can I Cook Right Now?</h1>
+<p class="text-on-surface-variant mb-md font-body-md text-body-md">Select ingredients you currently have.</p>
+<div class="flex gap-sm overflow-x-auto hide-scrollbar py-sm">
+<!-- Unselected Chips -->
+<button class="flex-shrink-0 px-md py-sm rounded-full border border-outline text-on-surface-variant hover:border-primary-fixed-dim hover:text-primary-fixed-dim transition-colors flex items-center gap-xs bg-surface-container">
+<span class="material-symbols-outlined text-[18px]">egg</span>
+                    Eggs
+                </button>
+<button class="flex-shrink-0 px-md py-sm rounded-full border border-outline text-on-surface-variant hover:border-primary-fixed-dim hover:text-primary-fixed-dim transition-colors flex items-center gap-xs bg-surface-container">
+<span class="material-symbols-outlined text-[18px]">grass</span>
+                    Spinach
+                </button>
+<button class="flex-shrink-0 px-md py-sm rounded-full border border-outline text-on-surface-variant hover:border-primary-fixed-dim hover:text-primary-fixed-dim transition-colors flex items-center gap-xs bg-surface-container">
+<span class="material-symbols-outlined text-[18px]">water_drop</span>
+                    Milk
+                </button>
+<button class="flex-shrink-0 px-md py-sm rounded-full border border-outline text-on-surface-variant hover:border-primary-fixed-dim hover:text-primary-fixed-dim transition-colors flex items-center gap-xs bg-surface-container">
+<span class="material-symbols-outlined text-[18px]">bakery_dining</span>
+                    Bread
+                </button>
+<button class="flex-shrink-0 px-md py-sm rounded-full border border-outline text-on-surface-variant hover:border-primary-fixed-dim hover:text-primary-fixed-dim transition-colors flex items-center gap-xs bg-surface-container">
+<span class="material-symbols-outlined text-[18px]">lunch_dining</span>
+                    Cheese
+                </button>
+<button class="flex-shrink-0 px-md py-sm rounded-full border border-outline text-on-surface-variant hover:border-primary-fixed-dim hover:text-primary-fixed-dim transition-colors flex items-center gap-xs bg-surface-container">
+<span class="material-symbols-outlined text-[18px]">rice_bowl</span>
+                    Rice
+                </button>
+</div>
+<!-- Subdued divider to separate fixed ingredients from empty state content -->
+<div class="w-full h-[1px] bg-outline-variant mt-sm"></div>
+</section>
+<!-- Empty State Central Area -->
+<section class="flex-grow flex flex-col items-center justify-center text-center px-gutter md:px-0 mt-xl">
+<!-- Illustration / Icon Container -->
+<div class="w-48 h-48 md:w-64 md:h-64 mb-lg relative flex items-center justify-center">
+<!-- Using a subtle glowing background circle for depth in dark mode -->
+<div class="absolute inset-0 bg-primary-container opacity-5 rounded-full blur-2xl"></div>
+<!-- Central Icon - Stylized Empty Pantry/Chef -->
+<div class="relative z-10 w-32 h-32 md:w-40 md:h-40 bg-surface-container-high rounded-full flex items-center justify-center border border-outline-variant shadow-[0_4px_20px_rgba(16,185,129,0.05)]">
+<span class="material-symbols-outlined text-6xl md:text-8xl text-outline-variant" data-icon="kitchen">kitchen</span>
+<!-- Small curious badge -->
+<div class="absolute -bottom-2 -right-2 bg-surface-container rounded-full p-2 border border-outline">
+<span class="material-symbols-outlined text-primary-fixed-dim text-2xl" data-icon="search">search</span>
+</div>
+</div>
+</div>
+<!-- Empty State Typography -->
+<h2 class="font-headline-md text-headline-md text-on-surface mb-sm max-w-md">Your pantry is feeling a bit lonely.</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-lg mb-xl">
+                Tap the ingredients you have on hand to see what magic you can whip up with your equipment.
+            </p>
+<!-- Call to Action Indicator -->
+<div class="animate-bounce mt-4">
+<span class="material-symbols-outlined text-primary-fixed-dim text-3xl">arrow_upward</span>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 border-t border-outline bg-background flex justify-around items-center h-16 px-gutter pb-safe">
+<!-- Active Tab: Cook Now -->
+<a class="flex flex-col items-center justify-center bg-on-primary-fixed-variant text-primary-fixed rounded-xl px-3 py-1 scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span aria-hidden="true" class="material-symbols-outlined filled-icon mb-1" data-icon="skillet">skillet</span>
+<span class="font-nutrition-label text-nutrition-label">Cook Now</span>
+</a>
+<!-- Inactive Tab: Planner -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant px-3 py-1 rounded-xl scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1" data-icon="calendar_month">calendar_month</span>
+<span class="font-nutrition-label text-nutrition-label">Planner</span>
+</a>
+<!-- Inactive Tab: Grocery -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant px-3 py-1 rounded-xl scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1" data-icon="shopping_cart">shopping_cart</span>
+<span class="font-nutrition-label text-nutrition-label">Grocery</span>
+</a>
+<!-- Inactive Tab: Profile -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant px-3 py-1 rounded-xl scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="font-nutrition-label text-nutrition-label">Profile</span>
+</a>
+</nav>
+<script>
+        // Simple script to handle chip selection toggle for demonstration
+        document.addEventListener('DOMContentLoaded', () => {
+            const chips = document.querySelectorAll('.overflow-x-auto button');
+            
+            chips.forEach(chip => {
+                chip.addEventListener('click', function() {
+                    // Toggle active state classes
+                    this.classList.toggle('bg-surface-container');
+                    this.classList.toggle('bg-primary-container');
+                    
+                    this.classList.toggle('text-on-surface-variant');
+                    this.classList.toggle('text-on-primary-container');
+                    
+                    this.classList.toggle('border-outline');
+                    this.classList.toggle('border-primary-container');
+                    
+                    // Toggle filled icon state
+                    const icon = this.querySelector('.material-symbols-outlined');
+                    if (icon) {
+                        icon.classList.toggle('filled-icon');
+                    }
+                });
+            });
+        });
+    </script>
+</body></html>

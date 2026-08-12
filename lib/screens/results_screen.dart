@@ -18,6 +18,7 @@ class ResultsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final matches = getRecommendations(
       ownedIngredients: selectedIngredients,
       ownedEquipment: ownedEquipment,
@@ -33,6 +34,7 @@ class ResultsScreen extends StatelessWidget {
           cookableCount > 0
               ? '$cookableCount Cookable Meal${cookableCount > 1 ? 's' : ''}'
               : 'Meal Recommendations',
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
       body: matches.isEmpty
@@ -43,88 +45,211 @@ class ResultsScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final match = matches[index];
                 final recipe = match.recipe;
+                final isPerfectMatch = match.missingIngredients.isEmpty;
                 final hasSubs = match.substitutionsAvailable.isNotEmpty;
 
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  color: match.isCookable
-                      ? null
-                      : Theme.of(context)
-                          .colorScheme
-                          .surface
-                          .withValues(alpha: 0.5),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(12),
-                    title: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            recipe.title,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: match.isCookable ? null : Colors.grey[700],
-                            ),
-                          ),
-                        ),
-                        if (hasSubs && match.isCookable) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.amber[100],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.lightbulb,
-                                    size: 12, color: Colors.amber[900]),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${match.substitutionsAvailable.length} Swap${match.substitutionsAvailable.length > 1 ? 's' : ''}',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.amber[900],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isPerfectMatch
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.outline.withValues(alpha: 0.3),
+                      width: isPerfectMatch ? 1.5 : 1,
                     ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 4),
-                        Text(_subtitleFor(match)),
-                        if (hasSubs && match.isCookable) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            _substituteHintFor(match),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.green[800],
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => RecipeDetailScreen(
                             recipe: recipe,
-                            ownedIngredients: selectedIngredients,
                           ),
                         ),
                       );
                     },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Recipe Image Banner with Match Badge
+                        Stack(
+                          children: [
+                            Image.network(
+                              recipe.imageUrl,
+                              height: 150,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                height: 150,
+                                color: theme.colorScheme.surfaceContainerHighest,
+                                child: const Icon(Icons.restaurant, size: 40),
+                              ),
+                            ),
+                            Positioned(
+                              top: 12,
+                              left: 12,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: isPerfectMatch
+                                      ? theme.colorScheme.secondary
+                                      : Colors.black87,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isPerfectMatch
+                                          ? Icons.star
+                                          : Icons.warning_amber_rounded,
+                                      size: 14,
+                                      color: Colors.black,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      isPerfectMatch
+                                          ? '⭐ Perfect Match'
+                                          : '⚠️ Missing: ${match.missingIngredients.join(', ')}',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (hasSubs)
+                              Positioned(
+                                top: 12,
+                                right: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primaryContainer,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '💡 ${match.substitutionsAvailable.length} Swap Available',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+
+                        // Details
+                        Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                recipe.title,
+                                style: const TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Time, Equipment, Price Tag
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme
+                                          .surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.access_time, size: 14),
+                                        const SizedBox(width: 4),
+                                        Text(recipe.prepTime,
+                                            style:
+                                                const TextStyle(fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme
+                                          .surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.microwave, size: 14),
+                                        const SizedBox(width: 4),
+                                        Text(recipe.equipmentNeeded.isNotEmpty ? recipe.equipmentNeeded.join(', ') : 'No equipment',
+                                            style:
+                                                const TextStyle(fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    '₱${recipe.estimatedCost.round()}',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+
+                              // You have / Missing text
+                              Text.rich(
+                                TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: isPerfectMatch
+                                          ? 'You have: '
+                                          : 'Missing: ',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: isPerfectMatch
+                                            ? theme.colorScheme.onSurface
+                                            : theme.colorScheme.secondary,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: isPerfectMatch
+                                          ? recipe.ingredients.join(', ')
+                                          : match.missingIngredients.join(', '),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: theme
+                                            .colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -133,27 +258,28 @@ class ResultsScreen extends StatelessWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.search_off_rounded,
               size: 64,
-              color: Colors.grey,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'No matching recipes found',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'We couldn\'t find any meals that match your current equipment, budget, and dietary preferences.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -165,41 +291,5 @@ class ResultsScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _substituteHintFor(RecipeMatch match) {
-    final entries = match.substitutionsAvailable.entries.map((e) {
-      return 'Use ${e.value} instead of ${e.key}';
-    }).join('; ');
-    return '💡 Swap Tip: $entries';
-  }
-
-  String _subtitleFor(RecipeMatch match) {
-    final recipe = match.recipe;
-    final missingCount = match.missingIngredients.length;
-    final unreplaceable = match.unreplaceableMissingCount;
-
-    String ingredientStatus;
-    if (missingCount == 0) {
-      ingredientStatus = 'All ingredients ready!';
-    } else if (unreplaceable == 0) {
-      ingredientStatus = 'Cookable with pantry swaps!';
-    } else {
-      ingredientStatus = '$unreplaceable missing ingredient(s)';
-    }
-
-    final base =
-        '${recipe.prepTime} • ₱${recipe.estimatedCost.toStringAsFixed(0)} • $ingredientStatus';
-
-    if (!match.hasRequiredEquipment) {
-      return '$base • Needs: ${recipe.equipmentNeeded.join(", ")}';
-    }
-    if (!match.withinBudget) {
-      return '$base • Over budget';
-    }
-    if (!match.matchesDietaryPreferences) {
-      return '$base • Doesn\'t match your dietary preferences';
-    }
-    return base;
   }
 }

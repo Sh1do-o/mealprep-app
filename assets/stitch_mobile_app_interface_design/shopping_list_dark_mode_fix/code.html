@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DormDish - Shopping List</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=Be+Vietnam+Pro:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#ffb690",
+                        "secondary-fixed": "#ffdbca",
+                        "surface-tint": "#6ffbbe",
+                        "on-secondary": "#5c2400",
+                        "on-background": "#e2e3df",
+                        "error": "#ffb4ab",
+                        "inverse-on-surface": "#161d19",
+                        "primary-fixed": "#6ffbbe",
+                        "outline": "#8b938c",
+                        "border-low": "#1f2937",
+                        "leaf-green": "#4edea3",
+                        "surface-bright": "#31394d",
+                        "on-tertiary-fixed": "#ffb3af",
+                        "tertiary-container": "#711419",
+                        "surface": "#0b1326",
+                        "surface-variant": "#3c4a42",
+                        "on-surface-variant": "#bbcabf",
+                        "price-tag-yellow": "#FDE047",
+                        "primary": "#6ffbbe",
+                        "tertiary": "#ffb3af",
+                        "tertiary-fixed-dim": "#ffb3af",
+                        "on-primary-fixed": "#002113",
+                        "on-primary-container": "#6ffbbe",
+                        "surface-muted": "#1a2436",
+                        "outline-variant": "#3c4a42",
+                        "background": "#0b1326",
+                        "on-tertiary-container": "#ffdad7",
+                        "surface-container-lowest": "#060e20",
+                        "surface-container": "#131b2e",
+                        "inverse-surface": "#dde4dd",
+                        "inverse-primary": "#006c49",
+                        "secondary-container": "#783200",
+                        "on-secondary-container": "#ffdbca",
+                        "on-secondary-fixed": "#341100",
+                        "on-primary-fixed-variant": "#005236",
+                        "on-tertiary-fixed-variant": "#842225",
+                        "on-surface": "#e2e3df",
+                        "surface-dim": "#0b1326",
+                        "on-tertiary": "#711419",
+                        "surface-container-low": "#0d162a",
+                        "primary-fixed-dim": "#4edea3",
+                        "on-error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#ffb690",
+                        "tertiary-fixed": "#ffdad7",
+                        "secondary": "#ffb690",
+                        "surface-container-high": "#1d263b",
+                        "yolk-orange": "#FB923C",
+                        "surface-container-highest": "#273248",
+                        "on-primary": "#003824",
+                        "primary-container": "#005236",
+                        "on-error": "#690005"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "12px",
+                        "base": "4px",
+                        "component-gap": "8px",
+                        "container-margin": "16px",
+                        "section-gap": "24px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Be Vietnam Pro"],
+                        "price-display": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-sm": ["Be Vietnam Pro"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "label-caps": ["Be Vietnam Pro"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "price-display": ["18px", { "lineHeight": "24px", "fontWeight": "700" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }]
+                    }
+                },
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #0b1326 !important;
+            color: #e2e3df !important;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .list-item-checkbox:checked + .list-item-content {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+        
+        .list-item-checkbox:checked {
+            background-color: theme('colors.primary');
+            border-color: theme('colors.primary');
+        }
+        
+        .list-item-checkbox:checked::before {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 10px;
+            border: solid theme('colors.on-primary');
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+            margin-top: 1px;
+            margin-left: 5px;
+        }
+        
+        /* Smooth scrolling for main container */
+        main {
+            scrollbar-width: none; /* Firefox */
+        }
+        main::-webkit-scrollbar {
+            display: none; /* Chrome, Safari and Opera */
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden bg-[#0b1326] text-[#e2e3df]">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#0b1326] border-b border-[#1f2937] flex items-center justify-between px-container-margin h-14 w-full">
+<div class="flex items-center gap-component-gap">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="restaurant_menu">restaurant_menu</span>
+<span class="font-headline-md text-headline-md text-primary font-bold">DormDish</span>
+</div>
+<div>
+<button class="p-2 rounded-full hover:bg-surface-container transition-colors duration-200 text-on-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto pt-16 pb-32 px-container-margin bg-[#0b1326]">
+<div class="flex justify-between items-end mb-section-gap mt-4">
+<div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface md:font-headline-lg md:text-headline-lg">Shopping List</h1>
+<p class="font-body-sm text-body-sm text-on-surface mt-1 opacity-80" style="opacity: 0;">For week of Oct 24</p>
+</div>
+<button class="flex items-center gap-2 bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 hover:bg-surface-container transition-colors text-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="share">share</span>
+<span class="font-body-sm text-body-sm font-semibold">Share</span>
+</button>
+</div>
+<!-- Need to Buy Section -->
+<section class="mb-section-gap">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-component-gap text-primary">Need to Buy</h2>
+<!-- Category: Produce -->
+<div class="bg-[#060e20] border border-[#1f2937] rounded-xl mb-component-gap overflow-hidden">
+<div class="bg-[#131b2e] px-gutter py-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-leaf-green text-[18px]" data-icon="nutrition">nutrition</span>
+<h3 class="font-body-sm text-body-sm font-bold uppercase tracking-wider text-on-surface">Produce</h3>
+</div>
+<div class="flex flex-col">
+<label class="flex items-center p-gutter border-b border-[#1f2937] cursor-pointer hover:bg-surface-muted transition-colors group">
+<input class="list-item-checkbox appearance-none w-5 h-5 border-2 border-outline-variant rounded shrink-0 mr-3 transition-colors" type="checkbox"/>
+<div class="list-item-content flex-1 flex justify-between items-center transition-all">
+<span class="font-body-lg text-body-lg text-on-surface">Spinach (1 bunch)</span>
+<span class="font-body-sm text-body-sm text-on-surface">₱45</span>
+</div>
+</label>
+<label class="flex items-center p-gutter border-b border-[#1f2937] cursor-pointer hover:bg-surface-muted transition-colors group">
+<input class="list-item-checkbox appearance-none w-5 h-5 border-2 border-outline-variant rounded shrink-0 mr-3 transition-colors" type="checkbox"/>
+<div class="list-item-content flex-1 flex justify-between items-center transition-all">
+<span class="font-body-lg text-body-lg text-on-surface">Garlic (1 head)</span>
+<span class="font-body-sm text-body-sm text-on-surface">₱15</span>
+</div>
+</label>
+</div>
+</div>
+<!-- Category: Dairy & Eggs -->
+<div class="bg-[#060e20] border border-[#1f2937] rounded-xl mb-component-gap overflow-hidden">
+<div class="bg-[#131b2e] px-gutter py-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-yolk-orange text-[18px]" data-icon="egg_alt">egg_alt</span>
+<h3 class="font-body-sm text-body-sm font-bold uppercase tracking-wider text-on-surface">Dairy &amp; Eggs</h3>
+</div>
+<div class="flex flex-col">
+<label class="flex items-center p-gutter border-b border-[#1f2937] cursor-pointer hover:bg-surface-muted transition-colors group">
+<input class="list-item-checkbox appearance-none w-5 h-5 border-2 border-outline-variant rounded shrink-0 mr-3 transition-colors" type="checkbox"/>
+<div class="list-item-content flex-1 flex justify-between items-center transition-all">
+<span class="font-body-lg text-body-lg text-on-surface">Eggs (6pcs)</span>
+<span class="font-body-sm text-body-sm text-on-surface">₱48</span>
+</div>
+</label>
+</div>
+</div>
+<!-- Category: Pantry -->
+<div class="bg-[#060e20] border border-[#1f2937] rounded-xl mb-component-gap overflow-hidden">
+<div class="bg-[#131b2e] px-gutter py-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[18px]" data-icon="kitchen">kitchen</span>
+<h3 class="font-body-sm text-body-sm font-bold uppercase tracking-wider text-on-surface">Pantry</h3>
+</div>
+<div class="flex flex-col">
+<label class="flex items-center p-gutter border-b border-[#1f2937] cursor-pointer hover:bg-surface-muted transition-colors group">
+<input class="list-item-checkbox appearance-none w-5 h-5 border-2 border-outline-variant rounded shrink-0 mr-3 transition-colors" type="checkbox"/>
+<div class="list-item-content flex-1 flex justify-between items-center transition-all">
+<span class="font-body-lg text-body-lg text-on-surface">Instant Noodles (3 packs)</span>
+<span class="font-body-sm text-body-sm text-on-surface">₱36</span>
+</div>
+</label>
+<label class="flex items-center p-gutter cursor-pointer hover:bg-surface-muted transition-colors group">
+<input class="list-item-checkbox appearance-none w-5 h-5 border-2 border-outline-variant rounded shrink-0 mr-3 transition-colors" type="checkbox"/>
+<div class="list-item-content flex-1 flex justify-between items-center transition-all">
+<span class="font-body-lg text-body-lg text-on-surface">Soy Sauce (small)</span>
+<span class="font-body-sm text-body-sm text-on-surface">₱22</span>
+</div>
+</label>
+</div>
+</div>
+</section>
+<!-- Already Have Section -->
+<section class="mb-section-gap opacity-70">
+<div class="flex items-center gap-2 mb-component-gap">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="inventory_2">inventory_2</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Already Have</h2>
+</div>
+<div class="bg-[#060e20] border border-[#1f2937] rounded-xl overflow-hidden">
+<div class="flex flex-col">
+<label class="flex items-center p-gutter border-b border-[#1f2937] cursor-pointer bg-[#1a2436]">
+<input checked="" class="list-item-checkbox appearance-none w-5 h-5 border-2 border-primary bg-primary rounded shrink-0 mr-3" type="checkbox"/>
+<div class="list-item-content flex-1 flex justify-between items-center opacity-50 line-through">
+<span class="font-body-lg text-body-lg text-on-surface">Rice (1kg)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">₱55</span>
+</div>
+</label>
+<label class="flex items-center p-gutter cursor-pointer bg-[#1a2436]">
+<input checked="" class="list-item-checkbox appearance-none w-5 h-5 border-2 border-primary bg-primary rounded shrink-0 mr-3" type="checkbox"/>
+<div class="list-item-content flex-1 flex justify-between items-center opacity-50 line-through">
+<span class="font-body-lg text-body-lg text-on-surface">Cooking Oil (250ml)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">₱30</span>
+</div>
+</label>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Estimated Total -->
+<div class="fixed bottom-[80px] left-0 w-full px-container-margin z-40 md:hidden">
+<div class="bg-primary text-on-primary rounded-xl p-gutter shadow-[0_4px_12px_rgba(0,0,0,0.5)] flex justify-between items-center">
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps">Estimated Total</span>
+<span class="font-price-display text-price-display">₱166.00</span>
+</div>
+<button class="bg-[#060e20] text-primary font-body-sm text-body-sm font-bold px-4 py-2 rounded-lg hover:bg-surface-container-high transition-colors border border-primary">
+                Done
+            </button>
+</div>
+</div>
+<!-- Desktop Estimated Total (visible on md+) -->
+<div class="hidden md:flex fixed bottom-0 left-0 w-full bg-[#0b1326] border-t border-[#1f2937] p-container-margin z-40 justify-between items-center shadow-[0_-4px_12px_rgba(0,0,0,0.3)]">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-primary-container rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="receipt_long">receipt_long</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant">Estimated Total</span>
+<span class="font-headline-md text-headline-md text-primary">₱166.00</span>
+</div>
+</div>
+<button class="bg-primary text-on-primary font-body-lg text-body-lg font-bold px-8 py-3 rounded-lg hover:bg-on-primary-fixed-variant transition-colors shadow-sm">
+            Complete Shopping
+        </button>
+</div>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="fixed bottom-0 w-full z-50 bg-[#0b1326] border-t border-[#1f2937] flex justify-around items-center h-16 w-full px-gutter pb-safe md:hidden">
+<!-- Cook Now (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-container-high scale-95 active:scale-90 transition-transform duration-150 rounded-xl group" href="#">
+<span class="material-symbols-outlined text-[24px] mb-1 group-hover:text-primary transition-colors" data-icon="skillet">skillet</span>
+<span class="font-label-caps text-label-caps">Cook Now</span>
+</a>
+<!-- Planner (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-container-high scale-95 active:scale-90 transition-transform duration-150 rounded-xl group" href="#">
+<span class="material-symbols-outlined text-[24px] mb-1 group-hover:text-primary transition-colors" data-icon="calendar_month">calendar_month</span>
+<span class="font-label-caps text-label-caps">Planner</span>
+</a>
+<!-- Grocery (Active) -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-3 py-1 scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined text-[24px] mb-1" data-icon="shopping_cart" style="font-variation-settings: 'FILL' 1;">shopping_cart</span>
+<span class="font-label-caps text-label-caps">Grocery</span>
+</a>
+<!-- Profile (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-container-high scale-95 active:scale-90 transition-transform duration-150 rounded-xl group" href="#">
+<span class="material-symbols-outlined text-[24px] mb-1 group-hover:text-primary transition-colors" data-icon="person">person</span>
+<span class="font-label-caps text-label-caps">Profile</span>
+</a>
+</nav>
+</body></html>

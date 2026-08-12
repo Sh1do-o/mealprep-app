@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import '../data/dummy_recipes.dart';
+import '../logic/recipe_matcher.dart' show ownedEquipmentFrom;
 import '../logic/weekly_planner_logic.dart';
 import '../models/recipe.dart';
 import '../services/preferences_service.dart';
 import 'recipe_detail_screen.dart';
+
+import 'nutrition_tracker_screen.dart';
+import 'weekly_summary_screen.dart';
 
 class WeeklyPlanScreen extends StatefulWidget {
   final Set<String> selectedIngredients;
@@ -18,37 +22,42 @@ class WeeklyPlanScreen extends StatefulWidget {
 }
 
 class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
-  final _preferencesService = PreferencesService();
-
-  bool _isLoading = true;
-  OnboardingData? _onboardingData;
+  final PreferencesService _prefs = PreferencesService();
+  int selectedDayIndex = 0; // 0 for MON (Day 1)
+  final Set<String> cookedMealIds = {};
   WeeklyPlanResult? _plan;
+  bool _isLoading = true;
+  int _seedOffset = 0;
+
+  final List<Map<String, dynamic>> days = const [
+    {'day': 'MON', 'date': '12'},
+    {'day': 'TUE', 'date': '13'},
+    {'day': 'WED', 'date': '14'},
+    {'day': 'THU', 'date': '15'},
+    {'day': 'FRI', 'date': '16'},
+    {'day': 'SAT', 'date': '17'},
+    {'day': 'SUN', 'date': '18'},
+  ];
 
   @override
   void initState() {
     super.initState();
-    _loadPlanAndOnboarding();
+    _loadPlan();
   }
 
-  Future<void> _loadPlanAndOnboarding() async {
-    final onboarding = await _preferencesService.loadOnboardingData();
-    final savedRecipeIds = await _preferencesService.loadWeeklyPlanRecipeIds();
+  Future<void> _loadPlan({bool forceRegenerate = false}) async {
+    final onboarding = await _prefs.loadOnboardingData();
+    final savedIds = await _prefs.loadWeeklyPlanRecipeIds();
 
-    final equipment = onboarding != null
-        ? ownedEquipmentFrom(onboarding)
-        : <String>{};
+    final equipment = onboarding != null ? ownedEquipmentFrom(onboarding) : <String>{};
     final budget = onboarding?.weeklyBudget ?? 500.0;
     final preferences = onboarding?.dietaryPreferences.toSet() ?? {};
 
     WeeklyPlanResult plan;
 
-    if (savedRecipeIds != null && savedRecipeIds.length == 7) {
-      // Reconstruct plan from saved recipe IDs
-      final Map<String, Recipe> recipeMap = {
-        for (var r in dummyRecipes) r.id: r
-      };
-
-      List<PlannedDay> days = [];
+    if (!forceRegenerate && savedIds != null && savedIds.length == 7) {
+      final recipeMap = {for (var r in dummyRecipes) r.id: r};
+      List<PlannedDay> plannedDays = [];
       const dayLabels = [
         'Day 1 (Mon)',
         'Day 2 (Tue)',
@@ -60,483 +69,475 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
       ];
 
       for (int i = 0; i < 7; i++) {
-        final id = savedRecipeIds[i];
-        final recipe = recipeMap[id] ?? dummyRecipes[i % dummyRecipes.length];
-        days.add(
-          PlannedDay(
-            dayIndex: i + 1,
-            dayName: dayLabels[i],
-            recipe: recipe,
-          ),
-        );
+        final recipe = recipeMap[savedIds[i]] ?? dummyRecipes[i % dummyRecipes.length];
+        plannedDays.add(PlannedDay(dayIndex: i + 1, dayName: dayLabels[i], recipe: recipe));
       }
-      plan = WeeklyPlanResult.fromDays(days, budget);
+      plan = WeeklyPlanResult.fromDays(plannedDays, budget);
     } else {
-      // Generate new plan
+      final seed = 42 + _seedOffset;
       plan = generateWeeklyPlan(
         ownedEquipment: equipment,
         weeklyBudget: budget,
         dietaryPreferences: preferences,
-        seed: DateTime.now().millisecondsSinceEpoch,
+        seed: seed,
       );
-      await _savePlanRecipeIds(plan);
+      await _prefs.saveWeeklyPlanRecipeIds(plan.days.map((d) => d.recipe.id).toList());
     }
 
     if (!mounted) return;
     setState(() {
-      _onboardingData = onboarding;
       _plan = plan;
       _isLoading = false;
     });
   }
 
-  Future<void> _savePlanRecipeIds(WeeklyPlanResult plan) async {
-    final ids = plan.days.map((d) => d.recipe.id).toList();
-    await _preferencesService.saveWeeklyPlanRecipeIds(ids);
-  }
-
-  void _regeneratePlan() async {
-    final equipment = _onboardingData != null
-        ? ownedEquipmentFrom(_onboardingData!)
-        : <String>{};
-    final budget = _onboardingData?.weeklyBudget ?? 500.0;
-    final preferences = _onboardingData?.dietaryPreferences.toSet() ?? {};
-
-    final newPlan = generateWeeklyPlan(
-      ownedEquipment: equipment,
-      weeklyBudget: budget,
-      dietaryPreferences: preferences,
-      seed: DateTime.now().millisecondsSinceEpoch,
-    );
-
+  void _regeneratePlan() {
     setState(() {
-      _plan = newPlan;
+      _seedOffset += 7;
+      _isLoading = true;
     });
-    await _savePlanRecipeIds(newPlan);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Generated a new non-repeating 7-day meal plan!'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _openSwapModal(PlannedDay day) {
-    if (_plan == null) return;
-
-    final equipment = _onboardingData != null
-        ? ownedEquipmentFrom(_onboardingData!)
-        : <String>{};
-    final preferences = _onboardingData?.dietaryPreferences.toSet() ?? {};
-
-    final candidates = getSwapCandidates(
-      currentPlan: _plan!,
-      dayIndex: day.dayIndex,
-      ownedEquipment: equipment,
-      dietaryPreferences: preferences,
-    );
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.6,
-          maxChildSize: 0.85,
-          minChildSize: 0.4,
-          builder: (context, scrollController) {
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Swap Meal for ${day.dayName}',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      Text(
-                        'Currently: ${day.recipe.title}',
-                        style: const TextStyle(color: Colors.grey, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: candidates.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'No alternative compatible recipes available.',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        )
-                      : ListView.builder(
-                          controller: scrollController,
-                          itemCount: candidates.length,
-                          itemBuilder: (context, index) {
-                            final recipe = candidates[index];
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
-                                child: Text(
-                                  '₱${recipe.estimatedCost.toInt()}',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onPrimaryContainer,
-                                  ),
-                                ),
-                              ),
-                              title: Text(recipe.title),
-                              subtitle: Text(
-                                '${recipe.prepTime} • ${recipe.nutrition.calories} kcal',
-                              ),
-                              trailing: const Icon(Icons.swap_horiz),
-                              onTap: () async {
-                                final updatedPlan = swapMealForDay(
-                                  currentPlan: _plan!,
-                                  dayIndex: day.dayIndex,
-                                  newRecipe: recipe,
-                                );
-                                Navigator.pop(context);
-                                setState(() {
-                                  _plan = updatedPlan;
-                                });
-                                await _savePlanRecipeIds(updatedPlan);
-                              },
-                            );
-                          },
-                        ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Set<String> ownedEquipmentFrom(OnboardingData data) {
-    final set = <String>{};
-    if (data.hasRiceCooker) set.add('Rice cooker');
-    if (data.hasStove) set.add('Stove');
-    if (data.hasMicrowave) set.add('Microwave');
-    if (data.hasFridge) set.add('Fridge');
-    return set;
+    _loadPlan(forceRegenerate: true);
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (_isLoading || _plan == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Weekly Plan')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final plan = _plan!;
+    final currentPlannedDay = plan.days[selectedDayIndex.clamp(0, plan.days.length - 1)];
+    final currentRecipe = currentPlannedDay.recipe;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Weekly Meal Plan'),
+        title: Row(
+          children: [
+            Icon(Icons.soup_kitchen, color: theme.colorScheme.primary, size: 22),
+            const SizedBox(width: 8),
+            const Text(
+              'Weekly Plan',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Regenerate Plan',
-            onPressed: _regeneratePlan,
+            icon: const Icon(Icons.analytics_outlined),
+            tooltip: 'Weekly Summary',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const WeeklySummaryScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.local_fire_department_outlined),
+            tooltip: 'Nutrition Tracker',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NutritionTrackerScreen()),
+              );
+            },
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _plan == null
-              ? const Center(child: Text('Could not generate plan'))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSummaryHeader(),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '7-Day Meal Schedule',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          OutlinedButton.icon(
-                            onPressed: _regeneratePlan,
-                            icon: const Icon(Icons.auto_awesome, size: 16),
-                            label: const Text('Regenerate'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _plan!.days.length,
-                        itemBuilder: (context, index) {
-                          final day = _plan!.days[index];
-                          return _buildDayCard(day);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-    );
-  }
-
-  Widget _buildSummaryHeader() {
-    final plan = _plan!;
-    final budget = plan.weeklyBudget;
-    final cost = plan.totalEstimatedCost;
-    final ratio = budget > 0 ? (cost / budget).clamp(0.0, 1.0) : 0.0;
-    final isOverBudget = cost > budget && budget > 0;
-
-    return Card(
-      elevation: 0,
-      color: isOverBudget
-          ? Colors.red[50]
-          : Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isOverBudget
-              ? Colors.red.shade200
-              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Estimated Plan Cost',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isOverBudget ? Colors.red : Colors.green[700],
-                    borderRadius: BorderRadius.circular(12),
+            // Top Health Coach Banner
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.eco_outlined, color: theme.colorScheme.primary, size: 22),
                   ),
-                  child: Text(
-                    isOverBudget ? 'Over Budget' : 'Within Budget',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Text(
+                      'You\'ve been eating healthy recently! Keep up the great work. 🥣',
+                      style: TextStyle(fontSize: 13, height: 1.3, fontWeight: FontWeight.w500),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  '₱${cost.toStringAsFixed(0)}',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: isOverBudget
-                        ? Colors.red[800]
-                        : Theme.of(context).colorScheme.primary,
+            const SizedBox(height: 12),
+
+            // Weekly Budget Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Weekly Budget',
+                          style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              '₱${plan.totalEstimatedCost.round()}',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                            Text(
+                              ' / ₱${plan.weeklyBudget.round()} budget',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Text(
-                  ' / ₱${budget.toStringAsFixed(0)} weekly budget',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-              ],
+                  SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          value: (plan.totalEstimatedCost / (plan.weeklyBudget > 0 ? plan.weeklyBudget : 1.0)).clamp(0.0, 1.0),
+                          strokeWidth: 4,
+                          backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            plan.totalEstimatedCost <= plan.weeklyBudget ? theme.colorScheme.primary : theme.colorScheme.error,
+                          ),
+                        ),
+                        Icon(Icons.change_history, size: 16, color: theme.colorScheme.primary),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: ratio,
-                minHeight: 8,
-                backgroundColor: Colors.grey[200],
-                color: isOverBudget ? Colors.red : Colors.green,
+            const SizedBox(height: 12),
+
+            // Calories & Macro Summary Bar
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildMacroStat(context, 'CALORIES', '${plan.totalCalories}'),
+                  Container(height: 24, width: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                  _buildMacroStat(context, 'PROTEIN', '${plan.totalProteinGrams.round()}g'),
+                  Container(height: 24, width: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                  _buildMacroStat(context, 'CARBS', '${plan.totalCarbsGrams.round()}g'),
+                ],
               ),
             ),
             const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 8),
-            const Text(
-              'Weekly Nutrition Breakdown',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+
+            // 7-Day Date Selector Bar
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: List.generate(days.length, (index) {
+                  final dayData = days[index];
+                  final isSelected = selectedDayIndex == index;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: InkWell(
+                      onTap: () => setState(() => selectedDayIndex = index),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: 54,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected ? theme.colorScheme.surfaceContainerHighest : theme.colorScheme.surfaceContainer,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline.withValues(alpha: 0.3),
+                            width: isSelected ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  dayData['day']!,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                if (isSelected) ...[
+                                  const SizedBox(width: 2),
+                                  Container(
+                                    width: 5,
+                                    height: 5,
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              dayData['date']!,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildMacroItem('Calories', '${plan.totalCalories} kcal'),
-                _buildMacroItem('Protein', '${plan.totalProteinGrams.toInt()}g'),
-                _buildMacroItem('Carbs', '${plan.totalCarbsGrams.toInt()}g'),
-                _buildMacroItem('Fat', '${plan.totalFatGrams.toInt()}g'),
-              ],
+            const SizedBox(height: 20),
+
+            // Daily Meal Card for the selected day
+            _buildPlannedMealCard(
+              context,
+              mealTime: '${days[selectedDayIndex]['day']} Planned Meal',
+              recipe: currentRecipe,
+              isCooked: cookedMealIds.contains(currentRecipe.id),
+              onToggleCooked: () {
+                setState(() {
+                  if (cookedMealIds.contains(currentRecipe.id)) {
+                    cookedMealIds.remove(currentRecipe.id);
+                  } else {
+                    cookedMealIds.add(currentRecipe.id);
+                  }
+                });
+              },
             ),
+            const SizedBox(height: 80),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          _regeneratePlan();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Weekly plan regenerated matching your budget!')),
+          );
+        },
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        icon: const Icon(Icons.autorenew),
+        label: const Text('Regenerate Plan', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
 
-  Widget _buildMacroItem(String label, String value) {
+  Widget _buildMacroStat(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         Text(
-          value,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        Text(
           label,
-          style: const TextStyle(fontSize: 11, color: Colors.grey),
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.8,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ],
     );
   }
 
-  Widget _buildDayCard(PlannedDay day) {
-    final recipe = day.recipe;
+  Widget _buildPlannedMealCard(
+    BuildContext context, {
+    required String mealTime,
+    required Recipe recipe,
+    String? missingIngredient,
+    required bool isCooked,
+    required VoidCallback onToggleCooked,
+  }) {
+    final theme = Theme.of(context);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => RecipeDetailScreen(
-                recipe: recipe,
-                ownedIngredients: widget.selectedIngredients.toList(),
-              ),
+              builder: (_) => RecipeDetailScreen(recipe: recipe),
             ),
           );
         },
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Meal Image Banner with Time Tag
+            Stack(
+              children: [
+                Image.network(
+                  recipe.imageUrl,
+                  height: 140,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 140,
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    child: const Icon(Icons.restaurant, size: 40),
+                  ),
+                ),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primaryContainer,
+                      color: Colors.black87,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      day.dayName,
-                      style: TextStyle(
+                      mealTime,
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onPrimaryContainer,
+                        color: Colors.white,
                       ),
                     ),
                   ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.swap_horiz_rounded, size: 20),
-                    tooltip: 'Swap Meal',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => _openSwapModal(day),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                recipe.title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
                 ),
-              ),
-              const SizedBox(height: 4),
-              Row(
+              ],
+            ),
+
+            // Card Body
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    recipe.prepTime,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          recipe.title,
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Text(
+                        '₱${recipe.estimatedCost.round()}',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Icon(Icons.payments_outlined,
-                      size: 14, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    '₱${recipe.estimatedCost.toStringAsFixed(0)}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(width: 12),
-                  Icon(Icons.local_fire_department_outlined,
-                      size: 14, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${recipe.nutrition.calories} kcal',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  if (missingIngredient != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      '⚠️ Missing: $missingIngredient',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.secondary,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.access_time, size: 14),
+                            const SizedBox(width: 4),
+                            Text(recipe.prepTime, style: const TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      OutlinedButton.icon(
+                        icon: Icon(
+                          isCooked ? Icons.check_box : Icons.check_box_outline_blank,
+                          size: 16,
+                        ),
+                        label: Text(isCooked ? 'Done' : 'Mark as Cooked'),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: isCooked ? theme.colorScheme.primaryContainer : Colors.transparent,
+                          foregroundColor: isCooked ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                          side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.5)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: onToggleCooked,
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: [
-                  for (final equip in recipe.equipmentNeeded)
-                    Chip(
-                      label: Text(equip, style: const TextStyle(fontSize: 10)),
-                      padding: EdgeInsets.zero,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  if (recipe.isVegetarian)
-                    Chip(
-                      label: const Text('Veg',
-                          style: TextStyle(fontSize: 10, color: Colors.green)),
-                      backgroundColor: Colors.green[50],
-                      padding: EdgeInsets.zero,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

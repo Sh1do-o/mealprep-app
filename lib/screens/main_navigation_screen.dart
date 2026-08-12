@@ -20,8 +20,6 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   late int _currentIndex;
 
-  final Set<String> _selectedIngredients = {};
-
   @override
   void initState() {
     super.initState();
@@ -30,12 +28,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screens = [
-      const HomeScreen(),
-      WeeklyPlanScreen(selectedIngredients: _selectedIngredients),
-      ShoppingListScreen(selectedIngredients: _selectedIngredients),
-      const FavoritesScreen(),
-      const RoommateDealsScreen(),
+    final screens = const [
+      HomeScreen(),
+      WeeklyPlanScreen(),
+      ShoppingListScreen(),
+      FavoritesScreen(),
+      RoommateDealsScreen(),
     ];
 
     return Scaffold(
@@ -57,14 +55,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             label: 'Cook Now',
           ),
           NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month),
-            label: 'Weekly Plan',
+            icon: Icon(Icons.calendar_today_outlined),
+            selectedIcon: Icon(Icons.calendar_today),
+            label: 'Planner',
           ),
           NavigationDestination(
             icon: Icon(Icons.shopping_cart_outlined),
             selectedIcon: Icon(Icons.shopping_cart),
-            label: 'Shopping List',
+            label: 'Grocery',
           ),
           NavigationDestination(
             icon: Icon(Icons.favorite_outline),

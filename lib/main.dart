@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'screens/onboarding_screen.dart';
 import 'screens/main_navigation_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'services/preferences_service.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const MealPrepApp());
@@ -13,22 +14,16 @@ class MealPrepApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Dorm Meal Prep',
+      title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: Colors.teal,
-        useMaterial3: true,
-      ),
-      // Decide the starting screen based on whether onboarding
-      // was already completed in a previous session.
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.dark, // Default to Culinary Dark Mode
       home: const _StartupRouter(),
     );
   }
 }
 
-// Small widget whose only job is to check local storage once,
-// then hand off to the right real screen. Keeps that async check
-// out of main() and out of the individual screens.
 class _StartupRouter extends StatelessWidget {
   const _StartupRouter();
 
@@ -42,7 +37,9 @@ class _StartupRouter extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        return snapshot.data! ? const MainNavigationScreen() : const OnboardingScreen();
+        return snapshot.data!
+            ? const MainNavigationScreen()
+            : const OnboardingScreen();
       },
     );
   }

@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import '../services/preferences_service.dart';
-import 'main_navigation_screen.dart';
 
-// key -> display label. Keys match what recipe_matcher.dart checks for.
 const List<MapEntry<String, String>> dietaryOptions = [
+  MapEntry('rice_breakfast', 'Rice for Breakfast'),
+  MapEntry('no_vegetables', 'No Vegetables'),
   MapEntry('vegetarian', 'Vegetarian'),
   MapEntry('halal', 'Halal'),
-  MapEntry('no_vegetables', 'No vegetables'),
 ];
 
-// StatefulWidget because the checkboxes and text field
-// need to remember and update their own values as the user taps them.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -21,147 +18,308 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _preferencesService = PreferencesService();
 
-  // These booleans track which equipment checkboxes are checked.
   bool hasRiceCooker = true;
   bool hasStove = false;
   bool hasMicrowave = false;
   bool hasFridge = true;
+  bool hasElectricKettle = false;
+  bool hasNone = false;
 
-  // Which dietary preference chips are selected. Values match the
-  // string keys the matcher checks for ('vegetarian', 'halal',
-  // 'no_vegetables') - kept as plain strings rather than an enum
-  // set since this maps directly to what gets saved/loaded as JSON.
   final Set<String> selectedDietaryPreferences = {};
-
-  // Controller lets us both display and read back the typed budget.
-  final _budgetController = TextEditingController(text: '500');
+  double weeklyBudget = 500;
   bool isSaving = false;
-
-  @override
-  void dispose() {
-    _budgetController.dispose();
-    super.dispose();
-  }
 
   Future<void> _handleContinue() async {
     setState(() => isSaving = true);
-
-    // Falls back to 0 if the field is empty or not a valid number,
-    // rather than crashing - budget just won't filter anything yet.
-    final budget = double.tryParse(_budgetController.text) ?? 0;
 
     final data = OnboardingData(
       hasRiceCooker: hasRiceCooker,
       hasStove: hasStove,
       hasMicrowave: hasMicrowave,
       hasFridge: hasFridge,
-      weeklyBudget: budget,
+      hasElectricKettle: hasElectricKettle,
+      weeklyBudget: weeklyBudget,
       dietaryPreferences: selectedDietaryPreferences.toList(),
     );
 
     await _preferencesService.saveOnboardingData(data);
 
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+    Navigator.pushReplacementNamed(context, '/');
+  }
+
+  Widget _buildEquipmentCard(String title, IconData icon, bool value, ValueChanged<bool> onChanged) {
+    final theme = Theme.of(context);
+    final isSelected = value;
+
+    return InkWell(
+      onTap: () => onChanged(!value),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3) : theme.colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline.withValues(alpha: 0.3),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: theme.colorScheme.onSurface,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('What do you have?')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Equipment',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            CheckboxListTile(
-              title: const Text('Rice cooker'),
-              value: hasRiceCooker,
-              onChanged: (val) => setState(() => hasRiceCooker = val!),
-            ),
-            CheckboxListTile(
-              title: const Text('Stove'),
-              value: hasStove,
-              onChanged: (val) => setState(() => hasStove = val!),
-            ),
-            CheckboxListTile(
-              title: const Text('Microwave'),
-              value: hasMicrowave,
-              onChanged: (val) => setState(() => hasMicrowave = val!),
-            ),
-            CheckboxListTile(
-              title: const Text('Fridge'),
-              value: hasFridge,
-              onChanged: (val) => setState(() => hasFridge = val!),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Dietary preferences',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: dietaryOptions.map((option) {
-                final key = option.key;
-                final label = option.value;
-                final isSelected = selectedDietaryPreferences.contains(key);
-                return FilterChip(
-                  label: Text(label),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        selectedDietaryPreferences.add(key);
-                      } else {
-                        selectedDietaryPreferences.remove(key);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Weekly budget',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _budgetController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                prefixText: '₱ ',
-                hintText: 'e.g. 500',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: isSaving ? null : _handleContinue,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: isSaving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Continue'),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 10),
+              // Header Title
+              Text(
+                'Setup Your Kitchen',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: theme.colorScheme.primary,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+
+              // Speech Bubble Banner
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  'Hey there! Let\'s tailor DormDish to your taste and budget.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: theme.colorScheme.onSurface,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Dietary Preferences Card Section
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Dietary Preferences',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: dietaryOptions.map((option) {
+                        final key = option.key;
+                        final label = option.value;
+                        final isSelected = selectedDietaryPreferences.contains(key);
+                        return ChoiceChip(
+                          label: Text(label),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setState(() {
+                              if (selected) {
+                                selectedDietaryPreferences.add(key);
+                              } else {
+                                selectedDietaryPreferences.remove(key);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Equipment Grid Card Section
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'What equipment do you have?',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 14),
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 2.5,
+                      children: [
+                        _buildEquipmentCard('Rice Cooker', Icons.rice_bowl, hasRiceCooker, (v) => setState(() => hasRiceCooker = v)),
+                        _buildEquipmentCard('Stove', Icons.soup_kitchen, hasStove, (v) => setState(() => hasStove = v)),
+                        _buildEquipmentCard('Microwave', Icons.microwave, hasMicrowave, (v) => setState(() => hasMicrowave = v)),
+                        _buildEquipmentCard('Fridge', Icons.kitchen, hasFridge, (v) => setState(() => hasFridge = v)),
+                        _buildEquipmentCard('Electric Kettle', Icons.local_cafe, hasElectricKettle, (v) => setState(() => hasElectricKettle = v)),
+                        _buildEquipmentCard('None', Icons.cancel_outlined, hasNone, (v) => setState(() => hasNone = v)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Weekly Food Budget Slider Card Section
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Weekly Food Budget',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '₱${weeklyBudget.round()}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        activeTrackColor: theme.colorScheme.primary,
+                        inactiveTrackColor: theme.colorScheme.surfaceContainerHighest,
+                        thumbColor: theme.colorScheme.primary,
+                      ),
+                      child: Slider(
+                        value: weeklyBudget,
+                        min: 300,
+                        max: 1000,
+                        divisions: 14,
+                        onChanged: (val) => setState(() => weeklyBudget = val),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('₱300', style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12)),
+                        Text('₱700', style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              // Glowing Green Primary Action Button
+              Container(
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isSaving ? null : _handleContinue,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: isSaving
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Ready to Cook',
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward_rounded, size: 22),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );

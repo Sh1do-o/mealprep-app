@@ -35,6 +35,7 @@ class OnboardingData {
   final bool hasStove;
   final bool hasMicrowave;
   final bool hasFridge;
+  final bool hasElectricKettle;
   final double weeklyBudget;
   final List<String> dietaryPreferences; // e.g. ["vegetarian", "halal"]
 
@@ -43,6 +44,7 @@ class OnboardingData {
     required this.hasStove,
     required this.hasMicrowave,
     required this.hasFridge,
+    this.hasElectricKettle = false,
     required this.weeklyBudget,
     this.dietaryPreferences = const [],
   });
@@ -52,6 +54,7 @@ class OnboardingData {
         'hasStove': hasStove,
         'hasMicrowave': hasMicrowave,
         'hasFridge': hasFridge,
+        'hasElectricKettle': hasElectricKettle,
         'weeklyBudget': weeklyBudget,
         'dietaryPreferences': dietaryPreferences,
       };
@@ -62,6 +65,7 @@ class OnboardingData {
         hasStove: json['hasStove'] as bool,
         hasMicrowave: json['hasMicrowave'] as bool,
         hasFridge: json['hasFridge'] as bool,
+        hasElectricKettle: (json['hasElectricKettle'] as bool?) ?? false,
         weeklyBudget: (json['weeklyBudget'] as num).toDouble(),
         // Falls back to empty if loading data saved before this field
         // existed, instead of crashing on old saved onboarding data.
