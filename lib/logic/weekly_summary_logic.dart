@@ -34,13 +34,24 @@ class WeeklySummaryData {
   });
 }
 
-// Aggregates cooked entries into descriptive summary metrics.
-WeeklySummaryData calculateWeeklySummary(List<CookedEntry> history,
-    {List<Recipe>? recipePool}) {
+// Aggregates cooked entries from the last 7 days into descriptive summary metrics.
+WeeklySummaryData calculateWeeklySummary(
+  List<CookedEntry> history, {
+  List<Recipe>? recipePool,
+  DateTime? now,
+  Duration window = const Duration(days: 7),
+}) {
   final recipes = recipePool ?? dummyRecipes;
   final recipeMap = {for (final r in recipes) r.id: r};
 
-  final totalMeals = history.length;
+  final referenceTime = now ?? DateTime.now();
+  final cutoff = referenceTime.subtract(window);
+
+  final weeklyEntries = history
+      .where((entry) => !entry.cookedAt.isBefore(cutoff))
+      .toList();
+
+  final totalMeals = weeklyEntries.length;
   double totalCost = 0;
   int calories = 0;
   double protein = 0;
@@ -49,7 +60,7 @@ WeeklySummaryData calculateWeeklySummary(List<CookedEntry> history,
   final List<CookedRecipeDetail> details = [];
 
   // Show newest cooked meals first in history log
-  for (final entry in history.reversed) {
+  for (final entry in weeklyEntries.reversed) {
     final recipe = recipeMap[entry.recipeId];
     details.add(CookedRecipeDetail(entry: entry, recipe: recipe));
 

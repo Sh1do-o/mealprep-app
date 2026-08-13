@@ -100,7 +100,9 @@ bool isRecipeCompatible({
   if (prefLower.contains('halal') && !recipe.isHalal) {
     return false;
   }
-  if (prefLower.contains('no-vegetables') && recipe.containsVegetables) {
+  if ((prefLower.contains('no-vegetables') ||
+          prefLower.contains('no_vegetables')) &&
+      recipe.containsVegetables) {
     return false;
   }
 
@@ -134,19 +136,62 @@ WeeklyPlanResult generateWeeklyPlan({
 
   List<PlannedDay> days = [];
   Set<String> chosenIds = {};
+  double currentTotalCost = 0.0;
 
   for (int i = 0; i < 7; i++) {
-    // Try to pick an unchosen recipe
     Recipe? selected;
-    for (final r in shuffledPool) {
-      if (!chosenIds.contains(r.id)) {
-        selected = r;
-        break;
+
+    if (weeklyBudget > 0) {
+      // Preference 1: unchosen recipe that keeps total cost within weeklyBudget
+      for (final r in shuffledPool) {
+        if (!chosenIds.contains(r.id) &&
+            (currentTotalCost + r.estimatedCost <= weeklyBudget)) {
+          selected = r;
+          break;
+        }
+      }
+      // Preference 2: any recipe that keeps total cost within weeklyBudget
+      if (selected == null) {
+        for (final r in shuffledPool) {
+          if (currentTotalCost + r.estimatedCost <= weeklyBudget) {
+            selected = r;
+            break;
+          }
+        }
+      }
+      // Preference 3: if budget cannot be met, pick unchosen recipe with lowest cost
+      if (selected == null) {
+        final unchosen = shuffledPool.where((r) => !chosenIds.contains(r.id)).toList();
+        if (unchosen.isNotEmpty) {
+          unchosen.sort((a, b) => a.estimatedCost.compareTo(b.estimatedCost));
+          selected = unchosen.first;
+        }
       }
     }
-    // Fallback to random choice if pool has fewer than 7 unique recipes
-    selected ??= shuffledPool[i % shuffledPool.length];
+
+    // Preference 4 (or if weeklyBudget <= 0): unchosen recipe regardless of budget constraint
+    if (selected == null) {
+      for (final r in shuffledPool) {
+        if (!chosenIds.contains(r.id)) {
+          selected = r;
+          break;
+        }
+      }
+    }
+
+    // Fallback: pick recipe with minimum estimated cost in shuffledPool
+    if (selected == null) {
+      Recipe minCostRecipe = shuffledPool.first;
+      for (final r in shuffledPool) {
+        if (r.estimatedCost < minCostRecipe.estimatedCost) {
+          minCostRecipe = r;
+        }
+      }
+      selected = minCostRecipe;
+    }
+
     chosenIds.add(selected.id);
+    currentTotalCost += selected.estimatedCost;
 
     days.add(
       PlannedDay(
