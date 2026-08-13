@@ -18,6 +18,18 @@ class ResultsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (selectedIngredients.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'Meal Recommendations',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        body: _buildNoIngredientsState(context),
+      );
+    }
+
     final theme = Theme.of(context);
     final matches = getRecommendations(
       ownedIngredients: selectedIngredients,
@@ -285,6 +297,42 @@ class ResultsScreen extends StatelessWidget {
             ElevatedButton.icon(
               icon: const Icon(Icons.arrow_back),
               label: const Text('Adjust selected ingredients'),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoIngredientsState(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.kitchen_outlined,
+              size: 64,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'No ingredients selected',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tap a few ingredients first so we know what to suggest.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Select Ingredients'),
               onPressed: () => Navigator.pop(context),
             ),
           ],

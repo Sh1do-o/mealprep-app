@@ -60,6 +60,32 @@ bool _matchesDietaryPreferences(Recipe recipe, Set<String> preferences) {
   return true;
 }
 
+bool _isIngredientMatch(String specName, Set<String> ownedSetLower) {
+  final specLower = specName.toLowerCase();
+  for (final owned in ownedSetLower) {
+    if (specLower == owned) return true;
+    if (specLower.contains(owned) || owned.contains(specLower)) return true;
+    if (specLower.endsWith('s') && specLower.substring(0, specLower.length - 1) == owned) return true;
+    if (owned.endsWith('s') && owned.substring(0, owned.length - 1) == specLower) return true;
+    if (specLower.endsWith('es') && specLower.substring(0, specLower.length - 2) == owned) return true;
+    if (owned.endsWith('es') && owned.substring(0, owned.length - 2) == specLower) return true;
+  }
+  return false;
+}
+
+bool _hasRequiredEquipment(List<String> equipmentNeeded, Set<String> ownedEquipLower) {
+  if (equipmentNeeded.isEmpty) return true;
+  for (final equip in equipmentNeeded) {
+    final equipLower = equip.toLowerCase();
+    if (ownedEquipLower.contains(equipLower)) continue;
+    if ({'skillet', 'pan', 'frying pan', 'pot'}.contains(equipLower) && ownedEquipLower.contains('stove')) continue;
+    if ({'kettle'}.contains(equipLower) && ownedEquipLower.contains('electric kettle')) continue;
+    if ({'mug', 'heat-safe bowl'}.contains(equipLower) && ownedEquipLower.contains('microwave')) continue;
+    return false;
+  }
+  return true;
+}
+
 List<RecipeMatch> getRecommendations({
   required List<String> ownedIngredients,
   required Set<String> ownedEquipment,
@@ -72,20 +98,13 @@ List<RecipeMatch> getRecommendations({
   final ownedEquipLower = ownedEquipment.map((e) => e.toLowerCase()).toSet();
 
   final matches = recipes
-      .where((recipe) {
-        // Strict appliance filter: if user doesn't own equipment, don't suggest the recipe
-        if (recipe.equipmentNeeded.isEmpty) return true;
-        return recipe.equipmentNeeded.every(
-          (e) => ownedEquipLower.contains(e.toLowerCase()),
-        );
-      })
+      .where((recipe) => _hasRequiredEquipment(recipe.equipmentNeeded, ownedEquipLower))
       .map((recipe) {
         final missing = <String>[];
         final substitutions = <String, String>{};
 
         for (final spec in recipe.detailedIngredients) {
-          final nameLower = spec.name.toLowerCase();
-          final hasIngredient = ownedSetLower.contains(nameLower);
+          final hasIngredient = _isIngredientMatch(spec.name, ownedSetLower);
 
           if (!hasIngredient) {
             missing.add(spec.name);
@@ -93,7 +112,7 @@ List<RecipeMatch> getRecommendations({
             // 1. Check recipe-specific substitutes
             String? foundSub;
             for (final sub in spec.substitutes) {
-              if (ownedSetLower.contains(sub.toLowerCase())) {
+              if (_isIngredientMatch(sub, ownedSetLower)) {
                 foundSub = sub;
                 break;
               }
@@ -104,7 +123,7 @@ List<RecipeMatch> getRecommendations({
               final globalSub = findGlobalSubstitution(spec.name);
               if (globalSub != null) {
                 for (final sub in globalSub.substitutes) {
-                  if (ownedSetLower.contains(sub.toLowerCase())) {
+                  if (_isIngredientMatch(sub, ownedSetLower)) {
                     foundSub = sub;
                     break;
                   }
@@ -118,9 +137,7 @@ List<RecipeMatch> getRecommendations({
           }
         }
 
-        final hasEquipment = recipe.equipmentNeeded.every(
-          (e) => ownedEquipLower.contains(e.toLowerCase()),
-        );
+        final hasEquipment = _hasRequiredEquipment(recipe.equipmentNeeded, ownedEquipLower);
         final withinBudget = budget <= 0 || recipe.estimatedCost <= budget;
         final matchesDiet =
             _matchesDietaryPreferences(recipe, dietaryPreferences);
@@ -135,6 +152,13 @@ List<RecipeMatch> getRecommendations({
         );
       })
       .toList();
+
+  // If user selected ingredients, exclude recipes with 0 matching ingredients and 0 substitutes
+  if (ownedIngredients.isNotEmpty) {
+    matches.removeWhere((match) =>
+        match.missingIngredients.length == match.recipe.detailedIngredients.length &&
+        match.substitutionsAvailable.isEmpty);
+  }
 
   matches.sort((a, b) {
     if (a.isCookable != b.isCookable) {

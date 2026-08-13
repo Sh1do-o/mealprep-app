@@ -91,9 +91,22 @@ phase is validated before the next is built on top of it.
 - ✅ **Roommates & Cooking Rotation** — `lib/screens/roommate_deals_screen.dart`. Roommate grocery cost splitter, cooking duty assigner, and 1-tap clipboard exporter for group chats.
 - ✅ **Student Deals & Micro-Unlocks** — `lib/screens/roommate_deals_screen.dart`. Partner student discounts showcase & interactive GCash micro-unlock perk demo.
 
-## What's next (Future Roadmap)
-- Firebase backend & cloud synchronization (syncing weekly plans, grocery checklists, and saved favorites across devices).
-- AI-assisted recipe creation and custom meal generation via Gemini API / Firebase AI Logic.
+## Future Roadmap & Unimplemented Features (For Future Reference)
+
+### 🎨 Onboarding & UI Enhancements
+- **Prompt-Style Dietary Preferences:** Upgrade static preference chips to an interactive modal/prompt flow during onboarding for reduced user friction.
+- **Multi-Portion & Multi-Meal Budget Scaling:** Expand the weekly budget algorithm to support multi-serving batch cooking (e.g., 2 servings per meal = 14 meals/week = ~₱800–₱1000 total budget allocation) so higher weekly budget settings (e.g., ₱1,000) are fully utilized across multiple daily meals.
+
+### 🍚 Cultural & Regional Features
+- **Filipino Rice Preference Toggle ("Always Pair with Rice"):** Add a dedicated toggle/setting on the Pantry screen to automatically pair ulam (main dish) recipes with a 1-cup portion of steamed rice (₱15 / ~200 kcal) and include it in nutrition and budget summaries.
+
+### 🗓️ Advanced Planner Features
+- **Custom Meal Planner & Manual Recipe Swapping:** Allow users to build their own custom 7-day meal plan from scratch, create custom user recipes, or manually pick specific recipes per day alongside auto-generation.
+
+### 🌐 Cloud, AI & Backend Integration
+- **Firebase & Cloud Synchronization:** Sync weekly plans, grocery checklists, cooked history, and saved favorites across devices using Firebase.
+- **AI-Powered Recipe Generation:** Integrate Gemini API / Firebase AI Logic for dynamic custom recipe generation based on non-standard pantry items on hand.
+- **Expanded Ingredient & Recipe Database:** Continually expand `ingredient_database.dart` and `dummy_recipes.dart` with localized regional dorm recipes.
 
 ## Why it's structured this way
 - `lib/models/` — data shapes (what a Recipe *is*)

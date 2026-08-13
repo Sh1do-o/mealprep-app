@@ -36,6 +36,7 @@ class OnboardingData {
   final bool hasMicrowave;
   final bool hasFridge;
   final bool hasElectricKettle;
+  final bool hasNone;
   final double weeklyBudget;
   final List<String> dietaryPreferences; // e.g. ["vegetarian", "halal"]
 
@@ -45,6 +46,7 @@ class OnboardingData {
     required this.hasMicrowave,
     required this.hasFridge,
     this.hasElectricKettle = false,
+    this.hasNone = false,
     required this.weeklyBudget,
     this.dietaryPreferences = const [],
   });
@@ -55,6 +57,7 @@ class OnboardingData {
         'hasMicrowave': hasMicrowave,
         'hasFridge': hasFridge,
         'hasElectricKettle': hasElectricKettle,
+        'hasNone': hasNone,
         'weeklyBudget': weeklyBudget,
         'dietaryPreferences': dietaryPreferences,
       };
@@ -66,6 +69,7 @@ class OnboardingData {
         hasMicrowave: json['hasMicrowave'] as bool,
         hasFridge: json['hasFridge'] as bool,
         hasElectricKettle: (json['hasElectricKettle'] as bool?) ?? false,
+        hasNone: (json['hasNone'] as bool?) ?? false,
         weeklyBudget: (json['weeklyBudget'] as num).toDouble(),
         // Falls back to empty if loading data saved before this field
         // existed, instead of crashing on old saved onboarding data.
@@ -105,6 +109,14 @@ class PreferencesService {
     final prefs = await SharedPreferences.getInstance();
     final history = await loadCookedHistory();
     history.add(entry);
+    final rawList = history.map((e) => jsonEncode(e.toJson())).toList();
+    await prefs.setStringList(_cookedHistoryKey, rawList);
+  }
+
+  Future<void> removeCookedEntryForRecipe(String recipeId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final history = await loadCookedHistory();
+    history.removeWhere((e) => e.recipeId == recipeId);
     final rawList = history.map((e) => jsonEncode(e.toJson())).toList();
     await prefs.setStringList(_cookedHistoryKey, rawList);
   }
@@ -163,6 +175,29 @@ class PreferencesService {
     }
     await saveFavoriteRecipeIds(favorites);
     return !isFav;
+  }
+
+  static const _calorieGoalKey = 'calorie_goal';
+  static const _proteinGoalKey = 'protein_goal';
+
+  Future<int> loadCalorieGoal() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_calorieGoalKey) ?? 2000;
+  }
+
+  Future<void> saveCalorieGoal(int goal) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_calorieGoalKey, goal);
+  }
+
+  Future<int> loadProteinGoal() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_proteinGoalKey) ?? 60;
+  }
+
+  Future<void> saveProteinGoal(int goal) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_proteinGoalKey, goal);
   }
 
   // Mostly useful for testing / a future "reset app" button in Profile.

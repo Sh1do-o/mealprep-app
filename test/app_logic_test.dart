@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mealprep_app/data/dummy_recipes.dart';
+import 'package:mealprep_app/logic/recipe_matcher.dart';
 import 'package:mealprep_app/logic/weekly_planner_logic.dart';
 import 'package:mealprep_app/logic/weekly_summary_logic.dart';
 import 'package:mealprep_app/services/preferences_service.dart';
@@ -74,6 +75,75 @@ void main() {
 
       expect(summary.totalMealsCooked, equals(2));
       expect(summary.cookedDetails.length, equals(2));
+    });
+  });
+
+  group('Pantry Matcher: Zero Matching Ingredient Filtering', () {
+    test('getRecommendations excludes recipes when NEITHER bread NOR egg are chosen, but includes them if either is present', () {
+      // 1. When only Rice is selected (NEITHER bread NOR egg chosen)
+      final riceMatches = getRecommendations(
+        ownedIngredients: ['Rice'],
+        ownedEquipment: {'Stove', 'Microwave', 'Rice cooker'},
+        budget: 500,
+      );
+      final riceEggAndToast = riceMatches.any((m) => m.recipe.title.contains('Egg & Toast'));
+      expect(riceEggAndToast, isFalse);
+
+      // 2. When Eggs is selected
+      final eggMatches = getRecommendations(
+        ownedIngredients: ['Eggs'],
+        ownedEquipment: {'Stove', 'Microwave', 'Rice cooker'},
+        budget: 500,
+      );
+      final eggEggAndToast = eggMatches.any((m) => m.recipe.title.contains('Egg & Toast'));
+      expect(eggEggAndToast, isTrue);
+
+      // 3. When Sliced Bread is selected
+      final breadMatches = getRecommendations(
+        ownedIngredients: ['Sliced Bread'],
+        ownedEquipment: {'Stove', 'Microwave', 'Rice cooker'},
+        budget: 500,
+      );
+      final breadEggAndToast = breadMatches.any((m) => m.recipe.title.contains('Egg & Toast'));
+      expect(breadEggAndToast, isTrue);
+    });
+  });
+
+  group('User 15-Ingredient Equipment Scenario', () {
+    test('Verifies recipe match count for user 15 ingredients under different equipment profiles', () {
+      final userIngredients = [
+        'Egg',
+        'Canned tuna',
+        'Canned corned beef',
+        'Chicken',
+        'Rice',
+        'Instant noodles',
+        'Bread',
+        'Onion',
+        'Garlic',
+        'Kimchi',
+        'Soy sauce',
+        'Cooking oil',
+        'Vinegar',
+        'Black pepper',
+        'Milk',
+      ];
+
+      // Scenario 1: Only Rice Cooker owned (matches exact 4 recipes user reported: Avocado Toast, Hainanese, Mac & Cheese, Kimchi Fried Rice)
+      final riceCookerOnly = getRecommendations(
+        ownedIngredients: userIngredients,
+        ownedEquipment: {'Rice cooker', 'Fridge'},
+        budget: 500,
+      );
+      expect(riceCookerOnly.length, equals(4));
+
+      // Scenario 2: Full equipment owned (Stove, Microwave, Rice Cooker, Kettle)
+      final fullEquipment = getRecommendations(
+        ownedIngredients: userIngredients,
+        ownedEquipment: {'Stove', 'Microwave', 'Rice cooker', 'Electric Kettle', 'Fridge'},
+        budget: 500,
+      );
+      expect(fullEquipment.length, greaterThanOrEqualTo(12));
     });
   });
 }

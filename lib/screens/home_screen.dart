@@ -14,7 +14,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final PreferencesService _prefs = PreferencesService();
-  final Set<String> selectedPantryIngredients = {'Rice', 'Eggs'};
+  final Set<String> selectedPantryIngredients = {};
   String activeTimeFilter = '30+ min';
   String searchQuery = '';
   IngredientCategory? selectedCategoryFilter;
@@ -181,33 +181,26 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Ingredient Selector Chips (dynamic from database + search)
-            SizedBox(
-              height: 44,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: availableIngredients.length,
-                itemBuilder: (context, index) {
-                  final item = availableIngredients[index];
-                  final isSelected = selectedPantryIngredients.contains(item.name);
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      avatar: isSelected
-                          ? Icon(Icons.check, size: 16, color: theme.colorScheme.onPrimaryContainer)
-                          : Icon(Icons.water_drop_outlined, size: 16, color: theme.colorScheme.onSurfaceVariant),
-                      label: Text(item.name),
-                      selected: isSelected,
-                      selectedColor: theme.colorScheme.primary,
-                      labelStyle: TextStyle(
-                        color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                      onSelected: (_) => _togglePantryIngredient(item.name),
-                    ),
-                  );
-                },
-              ),
+            // Ingredient Selector Chips (dynamic from database + search) - Wrapped for multiple lines
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: availableIngredients.map((item) {
+                final isSelected = selectedPantryIngredients.contains(item.name);
+                return FilterChip(
+                  avatar: isSelected
+                      ? Icon(Icons.check, size: 16, color: theme.colorScheme.onPrimaryContainer)
+                      : Icon(Icons.water_drop_outlined, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                  label: Text(item.name),
+                  selected: isSelected,
+                  selectedColor: theme.colorScheme.primary,
+                  labelStyle: TextStyle(
+                    color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                  onSelected: (_) => _togglePantryIngredient(item.name),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 20),
 

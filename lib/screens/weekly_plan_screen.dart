@@ -29,19 +29,26 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
   bool _isLoading = true;
   int _seedOffset = 0;
 
-  final List<Map<String, dynamic>> days = const [
-    {'day': 'MON', 'date': '12'},
-    {'day': 'TUE', 'date': '13'},
-    {'day': 'WED', 'date': '14'},
-    {'day': 'THU', 'date': '15'},
-    {'day': 'FRI', 'date': '16'},
-    {'day': 'SAT', 'date': '17'},
-    {'day': 'SUN', 'date': '18'},
-  ];
+  Set<String> _ownedEquipment = {};
+  Set<String> _dietaryPreferences = {};
+
+  List<Map<String, String>> get days {
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    return List.generate(7, (i) {
+      final dayDate = monday.add(Duration(days: i));
+      return {
+        'day': dayNames[i],
+        'date': '${dayDate.day}',
+      };
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    selectedDayIndex = (DateTime.now().weekday - 1).clamp(0, 6);
     _loadPlan();
   }
 
@@ -52,6 +59,9 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
     final equipment = onboarding != null ? ownedEquipmentFrom(onboarding) : <String>{};
     final budget = onboarding?.weeklyBudget ?? 500.0;
     final preferences = onboarding?.dietaryPreferences.toSet() ?? {};
+
+    _ownedEquipment = equipment;
+    _dietaryPreferences = preferences;
 
     WeeklyPlanResult plan;
 
@@ -84,9 +94,14 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
       await _prefs.saveWeeklyPlanRecipeIds(plan.days.map((d) => d.recipe.id).toList());
     }
 
+    final history = await _prefs.loadCookedHistory();
+    final cookedIds = history.map((e) => e.recipeId).toSet();
+
     if (!mounted) return;
     setState(() {
       _plan = plan;
+      cookedMealIds.clear();
+      cookedMealIds.addAll(cookedIds);
       _isLoading = false;
     });
   }
@@ -97,6 +112,98 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
       _isLoading = true;
     });
     _loadPlan(forceRegenerate: true);
+  }
+
+  void _showSwapDialog(int dayIndex) {
+    if (_plan == null) return;
+    final candidates = getSwapCandidates(
+      currentPlan: _plan!,
+      dayIndex: dayIndex + 1,
+      ownedEquipment: _ownedEquipment,
+      dietaryPreferences: _dietaryPreferences,
+    );
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          height: 400,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Swap Meal for ${days[dayIndex]['day']}',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (candidates.isEmpty)
+                const Expanded(
+                  child: Center(
+                    child: Text('No alternative compatible recipes available.'),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: candidates.length,
+                    itemBuilder: (context, idx) {
+                      final recipe = candidates[idx];
+                      return ListTile(
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            recipe.imageUrl,
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.restaurant),
+                          ),
+                        ),
+                        title: Text(recipe.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        subtitle: Text('${recipe.prepTime} • ₱${recipe.estimatedCost.round()}'),
+                        trailing: ElevatedButton(
+                          onPressed: () async {
+                            final updatedPlan = swapMealForDay(
+                              currentPlan: _plan!,
+                              dayIndex: dayIndex + 1,
+                              newRecipe: recipe,
+                            );
+                            await _prefs.saveWeeklyPlanRecipeIds(
+                              updatedPlan.days.map((d) => d.recipe.id).toList(),
+                            );
+                            setState(() {
+                              _plan = updatedPlan;
+                            });
+                            if (!mounted) return;
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Swapped meal to ${recipe.title}!')),
+                            );
+                          },
+                          child: const Text('Swap'),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -346,14 +453,42 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
               mealTime: '${days[selectedDayIndex]['day']} Planned Meal',
               recipe: currentRecipe,
               isCooked: cookedMealIds.contains(currentRecipe.id),
-              onToggleCooked: () {
-                setState(() {
-                  if (cookedMealIds.contains(currentRecipe.id)) {
-                    cookedMealIds.remove(currentRecipe.id);
-                  } else {
-                    cookedMealIds.add(currentRecipe.id);
-                  }
-                });
+              onSwap: () => _showSwapDialog(selectedDayIndex),
+              onToggleCooked: () async {
+                final recipeId = currentRecipe.id;
+                final isCurrentlyCooked = cookedMealIds.contains(recipeId);
+
+                if (!isCurrentlyCooked) {
+                  setState(() {
+                    cookedMealIds.add(recipeId);
+                  });
+                  await _prefs.addCookedEntry(
+                    CookedEntry(
+                      recipeId: currentRecipe.id,
+                      recipeTitle: currentRecipe.title,
+                      cookedAt: DateTime.now(),
+                    ),
+                  );
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Marked as cooked! Saved to history & nutrition tracker.'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                } else {
+                  setState(() {
+                    cookedMealIds.remove(recipeId);
+                  });
+                  await _prefs.removeCookedEntryForRecipe(recipeId);
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Unmarked cooked recipe.'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
               },
             ),
             const SizedBox(height: 80),
@@ -403,6 +538,7 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
     required Recipe recipe,
     String? missingIngredient,
     required bool isCooked,
+    VoidCallback? onSwap,
     required VoidCallback onToggleCooked,
   }) {
     final theme = Theme.of(context);
@@ -517,6 +653,20 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
                         ),
                       ),
                       const Spacer(),
+                      if (onSwap != null) ...[
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.swap_horiz, size: 16),
+                          label: const Text('Swap'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: theme.colorScheme.onSurface,
+                            side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.5)),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: onSwap,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       OutlinedButton.icon(
                         icon: Icon(
                           isCooked ? Icons.check_box : Icons.check_box_outline_blank,
@@ -527,7 +677,7 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
                           backgroundColor: isCooked ? theme.colorScheme.primaryContainer : Colors.transparent,
                           foregroundColor: isCooked ? theme.colorScheme.primary : theme.colorScheme.onSurface,
                           side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.5)),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                         onPressed: onToggleCooked,

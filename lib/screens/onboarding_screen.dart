@@ -30,6 +30,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool isSaving = false;
 
   Future<void> _handleContinue() async {
+    final hasAnyEquipment = hasRiceCooker || hasStove || hasMicrowave || hasFridge || hasElectricKettle || hasNone;
+    if (!hasAnyEquipment) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least 1 equipment option (or "None") to continue.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     setState(() => isSaving = true);
 
     final data = OnboardingData(
@@ -38,6 +49,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       hasMicrowave: hasMicrowave,
       hasFridge: hasFridge,
       hasElectricKettle: hasElectricKettle,
+      hasNone: hasNone,
       weeklyBudget: weeklyBudget,
       dietaryPreferences: selectedDietaryPreferences.toList(),
     );
@@ -266,7 +278,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('₱300', style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12)),
-                        Text('₱700', style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12)),
+                        Text('₱1000', style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12)),
                       ],
                     ),
                   ],

@@ -20,6 +20,8 @@ class _NutritionTrackerScreenState extends State<NutritionTrackerScreen> {
   int _totalCalories = 0;
   double _totalProtein = 0;
   double _totalCarbs = 0;
+  int _calorieGoal = 2000;
+  int _proteinGoal = 60;
 
   @override
   void initState() {
@@ -30,6 +32,8 @@ class _NutritionTrackerScreenState extends State<NutritionTrackerScreen> {
   Future<void> _loadData() async {
     final history = await _prefs.loadCookedHistory();
     final favIds = await _prefs.loadFavoriteRecipeIds();
+    final calGoal = await _prefs.loadCalorieGoal();
+    final protGoal = await _prefs.loadProteinGoal();
     final recipeMap = {for (var r in dummyRecipes) r.id: r};
 
     int cals = 0;
@@ -54,8 +58,68 @@ class _NutritionTrackerScreenState extends State<NutritionTrackerScreen> {
       _totalCalories = cals;
       _totalProtein = protein;
       _totalCarbs = carbs;
+      _calorieGoal = calGoal;
+      _proteinGoal = protGoal;
       _isLoading = false;
     });
+  }
+
+  Future<void> _editCalorieGoal() async {
+    final controller = TextEditingController(text: '$_calorieGoal');
+    final result = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change Daily Calorie Goal'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(suffixText: 'kcal', labelText: 'Daily Calorie Target'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              final val = int.tryParse(controller.text);
+              if (val != null && val > 0) Navigator.pop(context, val);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (result != null) {
+      await _prefs.saveCalorieGoal(result);
+      setState(() => _calorieGoal = result);
+    }
+  }
+
+  Future<void> _editProteinGoal() async {
+    final controller = TextEditingController(text: '$_proteinGoal');
+    final result = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change Daily Protein Goal'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(suffixText: 'g', labelText: 'Daily Protein Target'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              final val = int.tryParse(controller.text);
+              if (val != null && val > 0) Navigator.pop(context, val);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (result != null) {
+      await _prefs.saveProteinGoal(result);
+      setState(() => _proteinGoal = result);
+    }
   }
 
   @override
@@ -125,11 +189,24 @@ class _NutritionTrackerScreenState extends State<NutritionTrackerScreen> {
                                 color: theme.colorScheme.primary,
                               ),
                             ),
-                            Text(
-                              ' / 2,000 daily goal',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: theme.colorScheme.onSurfaceVariant,
+                            InkWell(
+                              onTap: _editCalorieGoal,
+                              borderRadius: BorderRadius.circular(6),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      ' / ${_calorieGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} daily goal',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(Icons.edit_outlined, size: 14, color: theme.colorScheme.primary),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -155,46 +232,66 @@ class _NutritionTrackerScreenState extends State<NutritionTrackerScreen> {
               children: [
                 // Protein Card
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainer,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'PROTEIN',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.onSurfaceVariant,
+                  child: InkWell(
+                    onTap: _editProteinGoal,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainer,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'PROTEIN',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
-                            Icon(Icons.fitness_center, color: theme.colorScheme.secondary, size: 16),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${_totalProtein.round()}g',
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: (_totalProtein / 100).clamp(0.0, 1.0),
-                            minHeight: 6,
-                            backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                            valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.secondary),
+                              Row(
+                                children: [
+                                  Icon(Icons.edit_outlined, size: 12, color: theme.colorScheme.secondary),
+                                  const SizedBox(width: 4),
+                                  Icon(Icons.fitness_center, color: theme.colorScheme.secondary, size: 16),
+                                ],
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 6),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                '${_totalProtein.round()}g',
+                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                ' / ${_proteinGoal}g',
+                                style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: (_totalProtein / (_proteinGoal > 0 ? _proteinGoal : 1)).clamp(0.0, 1.0),
+                              minHeight: 6,
+                              backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                              valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.secondary),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
