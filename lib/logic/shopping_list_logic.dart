@@ -110,6 +110,11 @@ ShoppingListResult generateShoppingList({
       ingredientCounts[key] = (ingredientCounts[key] ?? 0) + 1;
       ingredientToRecipes.putIfAbsent(key, () => []).add(day.recipe.title);
     }
+    if (day.isPairedWithRice) {
+      const riceKey = 'Steamed Rice (1 cup)';
+      ingredientCounts[riceKey] = (ingredientCounts[riceKey] ?? 0) + 1;
+      ingredientToRecipes.putIfAbsent(riceKey, () => []).add(day.recipe.title);
+    }
   }
 
   final Map<IngredientCategory, List<ShoppingItem>> categoryItems = {};
@@ -124,7 +129,9 @@ ShoppingListResult generateShoppingList({
 
   ingredientCounts.forEach((name, count) {
     final category = getCategoryForIngredient(name);
-    final isPantry = pantryLower.contains(name.toLowerCase());
+    final isPantry = pantryLower.contains(name.toLowerCase()) ||
+        (name.toLowerCase().contains('rice') &&
+            pantryLower.any((p) => p.contains('rice')));
     final isChecked = checkedLower.contains(name.toLowerCase());
 
     totalItems++;

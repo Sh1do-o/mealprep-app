@@ -34,6 +34,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     final onboarding = await _prefs.loadOnboardingData();
     final savedIds = await _prefs.loadWeeklyPlanRecipeIds();
     final savedChecked = await _prefs.loadCheckedShoppingItems();
+    final alwaysRice = await _prefs.loadAlwaysPairWithRice();
 
     final equipment = onboarding != null ? ownedEquipmentFrom(onboarding) : <String>{};
     final budget = onboarding?.weeklyBudget ?? 500.0;
@@ -54,7 +55,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       ];
       for (int i = 0; i < 7; i++) {
         final recipe = recipeMap[savedIds[i]] ?? dummyRecipes[i % dummyRecipes.length];
-        plannedDays.add(PlannedDay(dayIndex: i + 1, dayName: dayLabels[i], recipe: recipe));
+        plannedDays.add(PlannedDay(
+          dayIndex: i + 1,
+          dayName: dayLabels[i],
+          recipe: recipe,
+          isPairedWithRice: alwaysRice && recipe.canPairWithRice,
+        ));
       }
       plan = WeeklyPlanResult.fromDays(plannedDays, budget);
     } else {
@@ -62,6 +68,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         ownedEquipment: equipment,
         weeklyBudget: budget,
         dietaryPreferences: preferences,
+        alwaysPairWithRice: alwaysRice,
       );
     }
 

@@ -1,3 +1,14 @@
+// Standard nutrition and cost constants for 1 cup of steamed white rice.
+class SteamedRicePortion {
+  static const double cost = 15.0;
+  static const int calories = 200;
+  static const double proteinGrams = 4.0;
+  static const double carbsGrams = 45.0;
+  static const double fatGrams = 0.5;
+  static const String ingredientName = 'Steamed Rice';
+  static const String quantity = '1 cup';
+}
+
 // Rough nutrition estimate for one serving of a recipe.
 class NutritionEstimate {
   final int calories;
@@ -62,12 +73,28 @@ class Recipe {
   final bool isVegetarian;
   final bool isHalal;
   final bool containsVegetables;
+  final bool canPairWithRice;
 
   List<String> get ingredients =>
       detailedIngredients.map((e) => e.name).toList();
 
   List<String> get steps =>
       detailedSteps.map((s) => '${s.title}: ${s.description}').toList();
+
+  double getCostWithRice({required bool pairWithRice}) =>
+      (pairWithRice && canPairWithRice)
+          ? estimatedCost + SteamedRicePortion.cost
+          : estimatedCost;
+
+  NutritionEstimate getNutritionWithRice({required bool pairWithRice}) {
+    if (!pairWithRice || !canPairWithRice) return nutrition;
+    return NutritionEstimate(
+      calories: nutrition.calories + SteamedRicePortion.calories,
+      proteinGrams: nutrition.proteinGrams + SteamedRicePortion.proteinGrams,
+      carbsGrams: nutrition.carbsGrams + SteamedRicePortion.carbsGrams,
+      fatGrams: nutrition.fatGrams + SteamedRicePortion.fatGrams,
+    );
+  }
 
   Recipe({
     required this.id,
@@ -86,6 +113,7 @@ class Recipe {
     this.isVegetarian = false,
     this.isHalal = true,
     this.containsVegetables = false,
+    bool? canPairWithRice,
   })  : detailedIngredients = detailedIngredients ??
             (ingredients?.map((name) => IngredientSpec(name: name)).toList() ??
                 const []),
@@ -93,5 +121,19 @@ class Recipe {
             (steps
                     ?.map((s) => RecipeStep(title: 'Step', description: s))
                     .toList() ??
-                const []);
+                const []),
+        canPairWithRice = canPairWithRice ??
+            !((ingredients ??
+                    detailedIngredients?.map((e) => e.name).toList() ??
+                    [])
+                .any((i) {
+              final lower = i.toLowerCase();
+              return lower.contains('rice') ||
+                  lower.contains('bread') ||
+                  lower.contains('toast') ||
+                  lower.contains('noodle') ||
+                  lower.contains('ramen') ||
+                  lower.contains('macaroni') ||
+                  lower.contains('pasta');
+            }));
 }

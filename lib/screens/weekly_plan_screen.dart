@@ -55,6 +55,7 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
   Future<void> _loadPlan({bool forceRegenerate = false}) async {
     final onboarding = await _prefs.loadOnboardingData();
     final savedIds = await _prefs.loadWeeklyPlanRecipeIds();
+    final alwaysRice = await _prefs.loadAlwaysPairWithRice();
 
     final equipment = onboarding != null ? ownedEquipmentFrom(onboarding) : <String>{};
     final budget = onboarding?.weeklyBudget ?? 500.0;
@@ -80,7 +81,13 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
 
       for (int i = 0; i < 7; i++) {
         final recipe = recipeMap[savedIds[i]] ?? dummyRecipes[i % dummyRecipes.length];
-        plannedDays.add(PlannedDay(dayIndex: i + 1, dayName: dayLabels[i], recipe: recipe));
+        final pairRice = alwaysRice && recipe.canPairWithRice;
+        plannedDays.add(PlannedDay(
+          dayIndex: i + 1,
+          dayName: dayLabels[i],
+          recipe: recipe,
+          isPairedWithRice: pairRice,
+        ));
       }
       plan = WeeklyPlanResult.fromDays(plannedDays, budget);
     } else {
@@ -89,6 +96,7 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
         ownedEquipment: equipment,
         weeklyBudget: budget,
         dietaryPreferences: preferences,
+        alwaysPairWithRice: alwaysRice,
         seed: seed,
       );
       await _prefs.saveWeeklyPlanRecipeIds(plan.days.map((d) => d.recipe.id).toList());
@@ -453,6 +461,7 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
               mealTime: '${days[selectedDayIndex]['day']} Planned Meal',
               recipe: currentRecipe,
               isCooked: cookedMealIds.contains(currentRecipe.id),
+              isPairedWithRice: currentPlannedDay.isPairedWithRice,
               onSwap: () => _showSwapDialog(selectedDayIndex),
               onToggleCooked: () async {
                 final recipeId = currentRecipe.id;
@@ -467,6 +476,7 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
                       recipeId: currentRecipe.id,
                       recipeTitle: currentRecipe.title,
                       cookedAt: DateTime.now(),
+                      pairedWithRice: currentPlannedDay.isPairedWithRice,
                     ),
                   );
                   if (!context.mounted) return;
@@ -538,10 +548,12 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
     required Recipe recipe,
     String? missingIngredient,
     required bool isCooked,
+    bool isPairedWithRice = false,
     VoidCallback? onSwap,
     required VoidCallback onToggleCooked,
   }) {
     final theme = Theme.of(context);
+    final effectiveCost = recipe.getCostWithRice(pairWithRice: isPairedWithRice);
 
     return Container(
       decoration: BoxDecoration(
@@ -555,7 +567,10 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => RecipeDetailScreen(recipe: recipe),
+              builder: (_) => RecipeDetailScreen(
+                recipe: recipe,
+                initialPairWithRice: isPairedWithRice,
+              ),
             ),
           );
         },
@@ -595,6 +610,34 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
                     ),
                   ),
                 ),
+                if (isPairedWithRice)
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('🍚', style: TextStyle(fontSize: 12)),
+                          const SizedBox(width: 4),
+                          Text(
+                            '+ Rice',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
 
@@ -614,7 +657,7 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
                         ),
                       ),
                       Text(
-                        '₱${recipe.estimatedCost.round()}',
+                        '₱${effectiveCost.round()}',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,

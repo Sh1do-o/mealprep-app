@@ -8,23 +8,27 @@ class CookedEntry {
   final String recipeId;
   final String recipeTitle;
   final DateTime cookedAt;
+  final bool pairedWithRice;
 
   CookedEntry({
     required this.recipeId,
     required this.recipeTitle,
     required this.cookedAt,
+    this.pairedWithRice = false,
   });
 
   Map<String, dynamic> toJson() => {
         'recipeId': recipeId,
         'recipeTitle': recipeTitle,
         'cookedAt': cookedAt.toIso8601String(),
+        'pairedWithRice': pairedWithRice,
       };
 
   factory CookedEntry.fromJson(Map<String, dynamic> json) => CookedEntry(
         recipeId: json['recipeId'] as String,
         recipeTitle: json['recipeTitle'] as String,
         cookedAt: DateTime.parse(json['cookedAt'] as String),
+        pairedWithRice: (json['pairedWithRice'] as bool?) ?? false,
       );
 }
 
@@ -179,6 +183,17 @@ class PreferencesService {
 
   static const _calorieGoalKey = 'calorie_goal';
   static const _proteinGoalKey = 'protein_goal';
+  static const _alwaysPairWithRiceKey = 'always_pair_with_rice';
+
+  Future<bool> loadAlwaysPairWithRice() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_alwaysPairWithRiceKey) ?? true;
+  }
+
+  Future<void> saveAlwaysPairWithRice(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_alwaysPairWithRiceKey, value);
+  }
 
   Future<int> loadCalorieGoal() async {
     final prefs = await SharedPreferences.getInstance();

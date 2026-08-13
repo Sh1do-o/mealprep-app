@@ -87,6 +87,7 @@ phase is validated before the next is built on top of it.
 
 ### Phase 5 — Unscoped Features & Enhancements (Completed)
 - ✅ **Smart Ingredient Substitutions** — `lib/data/substitutions_database.dart` & `lib/models/recipe.dart`. Enhanced recipe ingredients with `IngredientSpec`, student substitution fallback lookup, match ranking tiers, and UI swap badges on `ResultsScreen` & `RecipeDetailScreen`.
+- ✅ **Filipino Rice Preference ("Always Pair with Rice")** — `lib/models/recipe.dart`, `lib/logic/recipe_matcher.dart`, `lib/screens/home_screen.dart`, `lib/screens/recipe_detail_screen.dart`, `lib/screens/weekly_plan_screen.dart`, & `lib/logic/shopping_list_logic.dart`. Dedicated toggle to automatically pair *ulam* (main dish/viand) recipes with 1 cup steamed rice (+₱15 • 200 kcal • 45g carbs • 4g protein), updating pantry matching, live recipe details, weekly plan costs/macros, and grocery shopping lists.
 - ✅ **Favorites / Saved Meals** — `lib/screens/favorites_screen.dart`. Bookmark recipes with favorite toggling, local storage persistence, and fast search.
 - ✅ **Roommates & Cooking Rotation** — `lib/screens/roommate_deals_screen.dart`. Roommate grocery cost splitter, cooking duty assigner, and 1-tap clipboard exporter for group chats.
 - ✅ **Student Deals & Micro-Unlocks** — `lib/screens/roommate_deals_screen.dart`. Partner student discounts showcase & interactive GCash micro-unlock perk demo.
@@ -96,9 +97,6 @@ phase is validated before the next is built on top of it.
 ### 🎨 Onboarding & UI Enhancements
 - **Prompt-Style Dietary Preferences:** Upgrade static preference chips to an interactive modal/prompt flow during onboarding for reduced user friction.
 - **Multi-Portion & Multi-Meal Budget Scaling:** Expand the weekly budget algorithm to support multi-serving batch cooking (e.g., 2 servings per meal = 14 meals/week = ~₱800–₱1000 total budget allocation) so higher weekly budget settings (e.g., ₱1,000) are fully utilized across multiple daily meals.
-
-### 🍚 Cultural & Regional Features
-- **Filipino Rice Preference Toggle ("Always Pair with Rice"):** Add a dedicated toggle/setting on the Pantry screen to automatically pair ulam (main dish) recipes with a 1-cup portion of steamed rice (₱15 / ~200 kcal) and include it in nutrition and budget summaries.
 
 ### 🗓️ Advanced Planner Features
 - **Custom Meal Planner & Manual Recipe Swapping:** Allow users to build their own custom 7-day meal plan from scratch, create custom user recipes, or manually pick specific recipes per day alongside auto-generation.

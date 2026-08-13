@@ -65,11 +65,13 @@ WeeklySummaryData calculateWeeklySummary(
     details.add(CookedRecipeDetail(entry: entry, recipe: recipe));
 
     if (recipe != null) {
-      totalCost += recipe.estimatedCost;
-      calories += recipe.nutrition.calories;
-      protein += recipe.nutrition.proteinGrams;
-      carbs += recipe.nutrition.carbsGrams;
-      fat += recipe.nutrition.fatGrams;
+      final itemCost = recipe.getCostWithRice(pairWithRice: entry.pairedWithRice);
+      final itemNutrition = recipe.getNutritionWithRice(pairWithRice: entry.pairedWithRice);
+      totalCost += itemCost;
+      calories += itemNutrition.calories;
+      protein += itemNutrition.proteinGrams;
+      carbs += itemNutrition.carbsGrams;
+      fat += itemNutrition.fatGrams;
     }
   }
 

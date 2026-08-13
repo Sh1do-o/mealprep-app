@@ -4,10 +4,12 @@ import '../services/preferences_service.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final Recipe recipe;
+  final bool? initialPairWithRice;
 
   const RecipeDetailScreen({
     super.key,
     required this.recipe,
+    this.initialPairWithRice,
   });
 
   @override
@@ -18,18 +20,26 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   final PreferencesService _prefs = PreferencesService();
   bool isFavorite = false;
   bool isCooked = false;
+  late bool pairWithRice;
   final Set<int> checkedIngredients = {};
 
   @override
   void initState() {
     super.initState();
-    _checkFavorite();
+    pairWithRice = widget.initialPairWithRice ?? widget.recipe.canPairWithRice;
+    _initSettings();
   }
 
-  Future<void> _checkFavorite() async {
+  Future<void> _initSettings() async {
     final favorites = await _prefs.loadFavoriteRecipeIds();
+    final alwaysRice = await _prefs.loadAlwaysPairWithRice();
     if (!mounted) return;
-    setState(() => isFavorite = favorites.contains(widget.recipe.id));
+    setState(() {
+      isFavorite = favorites.contains(widget.recipe.id);
+      if (widget.initialPairWithRice == null && widget.recipe.canPairWithRice) {
+        pairWithRice = alwaysRice;
+      }
+    });
   }
 
   Future<void> _toggleFavorite() async {
@@ -42,6 +52,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   Widget build(BuildContext context) {
     final recipe = widget.recipe;
     final theme = Theme.of(context);
+    final effectiveCost = recipe.getCostWithRice(pairWithRice: pairWithRice);
+    final effectiveNutrition = recipe.getNutritionWithRice(pairWithRice: pairWithRice);
 
     return Scaffold(
       body: CustomScrollView(
@@ -147,6 +159,51 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Filipino Rice Preference Pairing Toggle Card
+                  if (recipe.canPairWithRice) ...[
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: pairWithRice
+                            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
+                            : theme.colorScheme.surfaceContainer,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: pairWithRice
+                              ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                              : theme.colorScheme.outline.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Text('🍚', style: TextStyle(fontSize: 22)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Pair with Steamed Rice (+₱15)',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                ),
+                                Text(
+                                  'Adds 1 cup white rice (+200 kcal, +45g carbs, +4g protein)',
+                                  style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: pairWithRice,
+                            onChanged: (val) => setState(() => pairWithRice = val),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   // Ingredients Section Card
                   Container(
                     width: double.infinity,
@@ -159,9 +216,22 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Ingredients',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Ingredients',
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'Est. ₱${effectiveCost.round()}',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ],
                         ),
                         const Divider(height: 20),
                         ...List.generate(recipe.detailedIngredients.length, (index) {
@@ -190,7 +260,32 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               });
                             },
                           );
-                        })
+                        }),
+                        if (pairWithRice) ...[
+                          CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              '1 cup Steamed Rice (₱15)',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                decoration: checkedIngredients.contains(999) ? TextDecoration.lineThrough : null,
+                                color: checkedIngredients.contains(999) ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.primary,
+                              ),
+                            ),
+                            value: checkedIngredients.contains(999),
+                            activeColor: theme.colorScheme.primary,
+                            onChanged: (val) {
+                              setState(() {
+                                if (val!) {
+                                  checkedIngredients.add(999);
+                                } else {
+                                  checkedIngredients.remove(999);
+                                }
+                              });
+                            },
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -208,14 +303,28 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'MACROS PER SERVING',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.1,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'MACROS PER SERVING',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.1,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            if (pairWithRice)
+                              Text(
+                                '(Includes Rice)',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 12),
                         // Macros grid (Calories, Protein, Carbs, Fat)
@@ -234,7 +343,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                     Text('Calories', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '${recipe.nutrition.calories}',
+                                      '${effectiveNutrition.calories}',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w800,
@@ -259,7 +368,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                     Text('Protein', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '${recipe.nutrition.proteinGrams.round()}g',
+                                      '${effectiveNutrition.proteinGrams.round()}g',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w800,
@@ -288,7 +397,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                     Text('Carbs', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '${recipe.nutrition.carbsGrams.round()}g',
+                                      '${effectiveNutrition.carbsGrams.round()}g',
                                       style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w800,
@@ -312,7 +421,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                     Text('Fat', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '${recipe.nutrition.fatGrams.round()}g',
+                                      '${effectiveNutrition.fatGrams.round()}g',
                                       style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w800,
@@ -327,55 +436,102 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
-                  // Cooking Steps Section Header
-                  const Text(
-                    'Cooking Steps',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Numbered Step Cards
-                  ...List.generate(recipe.detailedSteps.length, (index) {
-                    final step = recipe.detailedSteps[index];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
+                  // Smart Substitutions Card Section
+                  if (recipe.detailedIngredients.any((i) => i.substitutes.isNotEmpty)) ...[
+                    Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surfaceContainer,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
                       ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.lightbulb_outline, color: theme.colorScheme.secondary, size: 20),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Student Smart Substitutions',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          ...recipe.detailedIngredients
+                              .where((item) => item.substitutes.isNotEmpty)
+                              .map((item) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: RichText(
+                                text: TextSpan(
+                                  style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface, height: 1.3),
+                                  children: [
+                                    TextSpan(
+                                      text: 'Instead of ${item.name}: ',
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                    TextSpan(
+                                      text: item.substitutes.join(', '),
+                                      style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Instructions / Steps Section
+                  const Text(
+                    'Step-by-Step Instructions',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  ...List.generate(recipe.detailedSteps.length, (index) {
+                    final step = recipe.detailedSteps[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainer,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                      ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: theme.colorScheme.primary),
-                            ),
-                            child: Center(
-                              child: Text(
-                                '${index + 1}',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.primary,
-                                ),
+                          CircleAvatar(
+                            radius: 14,
+                            backgroundColor: theme.colorScheme.primary,
+                            child: Text(
+                              '${index + 1}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onPrimary,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 14),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   step.title,
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
@@ -428,6 +584,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     recipeId: recipe.id,
                     recipeTitle: recipe.title,
                     cookedAt: DateTime.now(),
+                    pairedWithRice: pairWithRice,
                   ),
                 );
               }

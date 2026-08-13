@@ -22,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Set<String> _ownedEquipment = {};
   double _weeklyBudget = 500;
   Set<String> _dietaryPreferences = {};
+  bool _alwaysPairWithRice = true;
   bool _isLoading = true;
 
   @override
@@ -32,8 +33,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadUserData() async {
     final onboarding = await _prefs.loadOnboardingData();
+    final pairRice = await _prefs.loadAlwaysPairWithRice();
     if (!mounted) return;
     setState(() {
+      _alwaysPairWithRice = pairRice;
       if (onboarding != null) {
         _ownedEquipment = ownedEquipmentFrom(onboarding);
         _weeklyBudget = onboarding.weeklyBudget;
@@ -61,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ownedEquipment: _ownedEquipment,
       budget: _weeklyBudget,
       dietaryPreferences: _dietaryPreferences,
+      alwaysPairWithRice: _alwaysPairWithRice,
     );
 
     return matches.where((m) {
@@ -248,6 +252,51 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 24),
 
+              // Filipino Rice Preference Toggle Card
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: _alwaysPairWithRice
+                      ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
+                      : theme.colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: _alwaysPairWithRice
+                        ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                        : theme.colorScheme.outline.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Text('🍚', style: TextStyle(fontSize: 22)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Always Pair Ulam with Rice',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          Text(
+                            'Auto-adds 1 cup rice (+₱15 • 200 kcal) to viands',
+                            style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _alwaysPairWithRice,
+                      onChanged: (val) async {
+                        setState(() => _alwaysPairWithRice = val);
+                        await _prefs.saveAlwaysPairWithRice(val);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+
               // Suggestions Header with real match count
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -313,7 +362,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => RecipeDetailScreen(recipe: recipe),
+                                  builder: (_) => RecipeDetailScreen(
+                                    recipe: recipe,
+                                    initialPairWithRice: match.isPairedWithRice,
+                                  ),
                                 ),
                               );
                             },
@@ -363,6 +415,34 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                       ),
                                     ),
+                                    if (match.isPairedWithRice)
+                                      Positioned(
+                                        top: 12,
+                                        right: 12,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.primaryContainer,
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.4)),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Text('🍚', style: TextStyle(fontSize: 12)),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '+ Rice',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: theme.colorScheme.primary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                   ],
                                 ),
                                 Padding(
@@ -411,7 +491,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ),
                                           const Spacer(),
                                           Text(
-                                            '₱${recipe.estimatedCost.round()}',
+                                            '₱${match.effectiveCost.round()}',
                                             style: TextStyle(
                                               fontSize: 20,
                                               fontWeight: FontWeight.w800,

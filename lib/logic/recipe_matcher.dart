@@ -11,6 +11,9 @@ class RecipeMatch {
   final bool hasRequiredEquipment;
   final bool withinBudget;
   final bool matchesDietaryPreferences;
+  final bool isPairedWithRice;
+  final double effectiveCost;
+  final NutritionEstimate effectiveNutrition;
 
   RecipeMatch({
     required this.recipe,
@@ -19,7 +22,11 @@ class RecipeMatch {
     required this.hasRequiredEquipment,
     required this.withinBudget,
     required this.matchesDietaryPreferences,
-  });
+    this.isPairedWithRice = false,
+    double? effectiveCost,
+    NutritionEstimate? effectiveNutrition,
+  })  : effectiveCost = effectiveCost ?? recipe.getCostWithRice(pairWithRice: isPairedWithRice),
+        effectiveNutrition = effectiveNutrition ?? recipe.getNutritionWithRice(pairWithRice: isPairedWithRice);
 
   bool get isCookable =>
       hasRequiredEquipment && withinBudget && matchesDietaryPreferences;
@@ -91,6 +98,7 @@ List<RecipeMatch> getRecommendations({
   required Set<String> ownedEquipment,
   required double budget,
   Set<String> dietaryPreferences = const {},
+  bool alwaysPairWithRice = false,
   List<Recipe>? recipePool,
 }) {
   final recipes = recipePool ?? dummyRecipes;
@@ -137,8 +145,19 @@ List<RecipeMatch> getRecommendations({
           }
         }
 
+        final isPairedWithRice = alwaysPairWithRice && recipe.canPairWithRice;
+        if (isPairedWithRice) {
+          final hasRice = _isIngredientMatch('rice', ownedSetLower) ||
+              _isIngredientMatch('steamed rice', ownedSetLower);
+          if (!hasRice && !missing.any((m) => m.toLowerCase().contains('rice'))) {
+            missing.add('Steamed Rice (1 cup)');
+          }
+        }
+
+        final effectiveCost = recipe.getCostWithRice(pairWithRice: isPairedWithRice);
+        final effectiveNutrition = recipe.getNutritionWithRice(pairWithRice: isPairedWithRice);
         final hasEquipment = _hasRequiredEquipment(recipe.equipmentNeeded, ownedEquipLower);
-        final withinBudget = budget <= 0 || recipe.estimatedCost <= budget;
+        final withinBudget = budget <= 0 || effectiveCost <= budget;
         final matchesDiet =
             _matchesDietaryPreferences(recipe, dietaryPreferences);
 
@@ -149,15 +168,19 @@ List<RecipeMatch> getRecommendations({
           hasRequiredEquipment: hasEquipment,
           withinBudget: withinBudget,
           matchesDietaryPreferences: matchesDiet,
+          isPairedWithRice: isPairedWithRice,
+          effectiveCost: effectiveCost,
+          effectiveNutrition: effectiveNutrition,
         );
       })
       .toList();
 
   // If user selected ingredients, exclude recipes with 0 matching ingredients and 0 substitutes
   if (ownedIngredients.isNotEmpty) {
-    matches.removeWhere((match) =>
-        match.missingIngredients.length == match.recipe.detailedIngredients.length &&
-        match.substitutionsAvailable.isEmpty);
+    matches.removeWhere((match) {
+      final totalIngredients = match.recipe.detailedIngredients.length + (match.isPairedWithRice ? 1 : 0);
+      return match.missingIngredients.length >= totalIngredients && match.substitutionsAvailable.isEmpty;
+    });
   }
 
   matches.sort((a, b) {

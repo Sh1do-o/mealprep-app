@@ -6,20 +6,26 @@ class PlannedDay {
   final int dayIndex; // 1 to 7
   final String dayName;
   final Recipe recipe;
+  final bool isPairedWithRice;
 
   const PlannedDay({
     required this.dayIndex,
     required this.dayName,
     required this.recipe,
+    this.isPairedWithRice = false,
   });
 
-  PlannedDay copyWith({Recipe? recipe}) {
+  PlannedDay copyWith({Recipe? recipe, bool? isPairedWithRice}) {
     return PlannedDay(
       dayIndex: dayIndex,
       dayName: dayName,
       recipe: recipe ?? this.recipe,
+      isPairedWithRice: isPairedWithRice ?? this.isPairedWithRice,
     );
   }
+
+  double get cost => recipe.getCostWithRice(pairWithRice: isPairedWithRice);
+  NutritionEstimate get nutrition => recipe.getNutritionWithRice(pairWithRice: isPairedWithRice);
 }
 
 class WeeklyPlanResult {
@@ -49,11 +55,11 @@ class WeeklyPlanResult {
     double fat = 0;
 
     for (final day in days) {
-      cost += day.recipe.estimatedCost;
-      cals += day.recipe.nutrition.calories;
-      protein += day.recipe.nutrition.proteinGrams;
-      carbs += day.recipe.nutrition.carbsGrams;
-      fat += day.recipe.nutrition.fatGrams;
+      cost += day.cost;
+      cals += day.nutrition.calories;
+      protein += day.nutrition.proteinGrams;
+      carbs += day.nutrition.carbsGrams;
+      fat += day.nutrition.fatGrams;
     }
 
     return WeeklyPlanResult(
@@ -115,6 +121,7 @@ WeeklyPlanResult generateWeeklyPlan({
   required Set<String> ownedEquipment,
   required double weeklyBudget,
   required Set<String> dietaryPreferences,
+  bool alwaysPairWithRice = false,
   int seed = 42,
 }) {
   final pool = allRecipes ?? dummyRecipes;
@@ -144,8 +151,10 @@ WeeklyPlanResult generateWeeklyPlan({
     if (weeklyBudget > 0) {
       // Preference 1: unchosen recipe that keeps total cost within weeklyBudget
       for (final r in shuffledPool) {
+        final pairRice = alwaysPairWithRice && r.canPairWithRice;
+        final rCost = r.getCostWithRice(pairWithRice: pairRice);
         if (!chosenIds.contains(r.id) &&
-            (currentTotalCost + r.estimatedCost <= weeklyBudget)) {
+            (currentTotalCost + rCost <= weeklyBudget)) {
           selected = r;
           break;
         }
@@ -153,7 +162,9 @@ WeeklyPlanResult generateWeeklyPlan({
       // Preference 2: any recipe that keeps total cost within weeklyBudget
       if (selected == null) {
         for (final r in shuffledPool) {
-          if (currentTotalCost + r.estimatedCost <= weeklyBudget) {
+          final pairRice = alwaysPairWithRice && r.canPairWithRice;
+          final rCost = r.getCostWithRice(pairWithRice: pairRice);
+          if (currentTotalCost + rCost <= weeklyBudget) {
             selected = r;
             break;
           }
@@ -163,7 +174,11 @@ WeeklyPlanResult generateWeeklyPlan({
       if (selected == null) {
         final unchosen = shuffledPool.where((r) => !chosenIds.contains(r.id)).toList();
         if (unchosen.isNotEmpty) {
-          unchosen.sort((a, b) => a.estimatedCost.compareTo(b.estimatedCost));
+          unchosen.sort((a, b) {
+            final aCost = a.getCostWithRice(pairWithRice: alwaysPairWithRice && a.canPairWithRice);
+            final bCost = b.getCostWithRice(pairWithRice: alwaysPairWithRice && b.canPairWithRice);
+            return aCost.compareTo(bCost);
+          });
           selected = unchosen.first;
         }
       }
@@ -182,22 +197,29 @@ WeeklyPlanResult generateWeeklyPlan({
     // Fallback: pick recipe with minimum estimated cost in shuffledPool
     if (selected == null) {
       Recipe minCostRecipe = shuffledPool.first;
+      double minCost = minCostRecipe.getCostWithRice(pairWithRice: alwaysPairWithRice && minCostRecipe.canPairWithRice);
       for (final r in shuffledPool) {
-        if (r.estimatedCost < minCostRecipe.estimatedCost) {
+        final rCost = r.getCostWithRice(pairWithRice: alwaysPairWithRice && r.canPairWithRice);
+        if (rCost < minCost) {
           minCostRecipe = r;
+          minCost = rCost;
         }
       }
       selected = minCostRecipe;
     }
 
+    final pairRice = alwaysPairWithRice && selected.canPairWithRice;
+    final itemCost = selected.getCostWithRice(pairWithRice: pairRice);
+
     chosenIds.add(selected.id);
-    currentTotalCost += selected.estimatedCost;
+    currentTotalCost += itemCost;
 
     days.add(
       PlannedDay(
         dayIndex: i + 1,
         dayName: _dayLabels[i],
         recipe: selected,
+        isPairedWithRice: pairRice,
       ),
     );
   }
@@ -231,12 +253,15 @@ WeeklyPlanResult swapMealForDay({
   required WeeklyPlanResult currentPlan,
   required int dayIndex,
   required Recipe newRecipe,
+  bool? isPairedWithRice,
 }) {
   final updatedDays = List<PlannedDay>.from(currentPlan.days);
   final targetIndex = dayIndex - 1;
+  final defaultPairWithRice = isPairedWithRice ?? (currentPlan.days[targetIndex].isPairedWithRice && newRecipe.canPairWithRice);
 
   updatedDays[targetIndex] = updatedDays[targetIndex].copyWith(
     recipe: newRecipe,
+    isPairedWithRice: defaultPairWithRice,
   );
 
   return WeeklyPlanResult.fromDays(updatedDays, currentPlan.weeklyBudget);

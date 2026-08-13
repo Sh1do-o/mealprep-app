@@ -146,4 +146,63 @@ void main() {
       expect(fullEquipment.length, greaterThanOrEqualTo(12));
     });
   });
+
+  group('Filipino Rice Preference Toggle ("Always Pair with Rice")', () {
+    test('Recipe.getCostWithRice and getNutritionWithRice adjust ulam dishes only', () {
+      final ulamRecipe = dummyRecipes.firstWhere((r) => r.id == '2'); // Quick Veggie Egg Scramble
+      expect(ulamRecipe.canPairWithRice, isTrue);
+
+      // Without rice
+      expect(ulamRecipe.getCostWithRice(pairWithRice: false), equals(35.0));
+      expect(ulamRecipe.getNutritionWithRice(pairWithRice: false).calories, equals(320));
+
+      // With rice (+₱15, +200 kcal, +45g carbs, +4g protein, +0.5g fat)
+      expect(ulamRecipe.getCostWithRice(pairWithRice: true), equals(50.0));
+      final nutritionWithRice = ulamRecipe.getNutritionWithRice(pairWithRice: true);
+      expect(nutritionWithRice.calories, equals(520));
+      expect(nutritionWithRice.carbsGrams, equals(53.0));
+      expect(nutritionWithRice.proteinGrams, equals(22.0));
+
+      // Non-ulam recipe (e.g. Avocado Toast with bread)
+      final toastRecipe = dummyRecipes.firstWhere((r) => r.id == '5');
+      expect(toastRecipe.canPairWithRice, isFalse);
+      expect(toastRecipe.getCostWithRice(pairWithRice: true), equals(toastRecipe.estimatedCost));
+    });
+
+    test('getRecommendations adjusts effectiveCost and missing ingredients when alwaysPairWithRice is true', () {
+      final matchesWithRice = getRecommendations(
+        ownedIngredients: ['Eggs', 'Cooking oil'],
+        ownedEquipment: {'Stove', 'Rice cooker', 'Microwave'},
+        budget: 500,
+        alwaysPairWithRice: true,
+      );
+
+      final scrambleMatch = matchesWithRice.firstWhere((m) => m.recipe.id == '2');
+      expect(scrambleMatch.isPairedWithRice, isTrue);
+      expect(scrambleMatch.effectiveCost, equals(50.0));
+      expect(scrambleMatch.missingIngredients.any((m) => m.contains('Rice')), isTrue);
+    });
+
+    test('Weekly summary and CookedEntry accurately aggregate meals with paired rice', () {
+      final now = DateTime(2026, 8, 14, 12, 0);
+      final history = [
+        CookedEntry(
+          recipeId: '2', // Veggie Egg Scramble (₱35 normal, ₱50 with rice)
+          recipeTitle: 'Quick Veggie Egg Scramble',
+          cookedAt: now.subtract(const Duration(hours: 3)),
+          pairedWithRice: true,
+        ),
+      ];
+
+      final summary = calculateWeeklySummary(
+        history,
+        recipePool: dummyRecipes,
+        now: now,
+      );
+
+      expect(summary.totalMealsCooked, equals(1));
+      expect(summary.totalEstimatedCost, equals(50.0));
+      expect(summary.totalCalories, equals(520));
+    });
+  });
 }
